@@ -22,13 +22,7 @@ endif
 endif
 
 ###############################################################################
-# Necessary Check
-
 ifneq ($(CONFIG_MTK_COMBO),)
-
-ifneq ($(KERNEL_OUT),)
-    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
-endif
 
 #ldflags-y += -s
 
