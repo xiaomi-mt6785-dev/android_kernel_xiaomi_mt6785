@@ -11,12 +11,7 @@
 
 ###############################################################################
 $(warning GPS_CHIP_ID != common)
-# Necessary Check
 ifeq ($(CONFIG_MTK_GPS_SUPPORT), y)
-
-ifneq ($(KERNEL_OUT),)
-    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
-endif
 
 ifndef TOP
     TOP := $(srctree)/..
