@@ -4123,7 +4123,7 @@ int __init main_driver_init(void)
 	return ret;
 }
 
-void __exit main_driver_exit(void)
+void main_driver_exit(void)
 {
 	BTMTK_INFO("%s", __func__);
 
