@@ -1529,7 +1529,7 @@ static int __init gps_mod_init(void)
 }
 
 /*****************************************************************************/
-static void __exit gps_mod_exit(void)
+static void gps_mod_exit(void)
 {
 	mtk_wcn_stpgps_drv_exit();
 	#ifdef CONFIG_MTK_GPS_EMI
