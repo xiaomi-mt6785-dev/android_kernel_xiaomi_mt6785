@@ -541,7 +541,7 @@ mod_init_err_skip_free:
 	return ret;
 }
 
-static void __exit connfem_mod_exit(void)
+static void connfem_mod_exit(void)
 {
 	pr_info("%s", __func__);
 
