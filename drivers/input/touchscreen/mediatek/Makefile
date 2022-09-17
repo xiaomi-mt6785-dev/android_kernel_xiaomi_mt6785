@@ -11,6 +11,7 @@ obj-y   +=  tpd_default.o
 obj-y   +=  tpd_misc.o
 obj-y   +=  tpd_setting.o
 
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    += tp_common.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_info.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_selftest.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_work.o

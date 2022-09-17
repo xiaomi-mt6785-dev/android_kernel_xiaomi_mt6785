@@ -195,11 +195,11 @@ source "drivers/input/touchscreen/mediatek/ft3418_i2c/Kconfig"
 source "drivers/input/touchscreen/mediatek/xiaomi/Kconfig"
 
 config TOUCHSCREEN_COMMON
-	bool "touchscreen for xiaomi project"
+	bool "Common touchscreen interface to interact with userspace"
 	depends on I2C
 	default n
 	help
-		Say Y here if you have a xiaomi touchscreen and want to enable support for the built-in touchscreen.
+		Say Y here if you want to control touchpanel features via /sys/touchpanel.
 
 source "drivers/input/touchscreen/mediatek/goodix_gtx8/Kconfig"
 source "drivers/input/touchscreen/mediatek/nt36xxx_spi/Kconfig"
