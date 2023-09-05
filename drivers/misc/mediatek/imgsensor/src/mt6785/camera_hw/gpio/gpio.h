@@ -14,6 +14,10 @@
 #include "imgsensor_hw.h"
 #include "imgsensor_common.h"
 
+#ifndef MIPI_SWITCH
+#define MIPI_SWITCH
+#endif
+
 enum GPIO_CTRL_STATE_CAM {
 	/* Main */
 	GPIO_CTRL_STATE_PDN_H,
