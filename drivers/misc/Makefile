@@ -11,6 +11,8 @@ obj-$(CONFIG_ANT_CHECK_DIV)	+= ant_check_div.o
 
 obj-$(CONFIG_SIMTRAY_STATUS)	+= simtray.o
 
+obj-$(CONFIG_AW8622_HAPTIC)  += aw8622_haptic/
+
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_IBMVMC)		+= ibmvmc.o
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
