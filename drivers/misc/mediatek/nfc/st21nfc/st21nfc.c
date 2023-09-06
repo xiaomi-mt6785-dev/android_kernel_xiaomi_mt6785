@@ -48,6 +48,8 @@
  */
 #include <linux/version.h>
 
+#include <linux/board_id.h>
+
 #if (KERNEL_VERSION(4, 4, 0) > LINUX_VERSION_CODE)
 // Legacy implementation, also used on recent kernels for legacy platforms
 // such as (6580 and 6735)
@@ -1089,13 +1091,26 @@ static struct platform_driver st21nfc_platform_driver = {
 /* module load/unload record keeping */
 static int __init st21nfc_dev_init(void)
 {
+	//get hwversion number
+	//rosemary project_number is 2
+	int project_number;
+	project_number = board_id_get_hwversion_product_num();
+
 	pr_info("Loading st21nfc driver\n");
+
 #ifndef KRNMTKLEGACY_GPIO
 	platform_driver_register(&st21nfc_platform_driver);
 	if (enable_debug_log)
 		pr_debug("Loading st21nfc i2c driver\n");
 #endif
-	return i2c_add_driver(&st21nfc_driver);
+
+	if (project_number == 2) {
+		pr_info("%s: support NFC\n", __func__);
+		return i2c_add_driver(&st21nfc_driver);
+	} else {
+		pr_err("%s: not supports NFC\n", __func__);
+		return -ENODEV;
+	}
 }
 
 module_init(st21nfc_dev_init);
