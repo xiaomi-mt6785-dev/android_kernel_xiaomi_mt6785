@@ -82,6 +82,14 @@ enum pmic_eint_ID {
 };
 #endif
 
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#define CONFIG_CUSTOM_HEADSET_FEATURE 1
+#if defined(CONFIG_CUSTOM_HEADSET_FEATURE)
+#define MEDIA_PREVIOUS_SCAN_CODE 257
+#define MEDIA_NEXT_SCAN_CODE 258
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
+
 /* accdet_status_str: to record current 'accdet_status' by string,
  * mapping to  'enum accdet_status'
  */
@@ -234,6 +242,9 @@ static void accdet_init_debounce(void);
 static void mini_dump_register(void);
 static void accdet_modify_vref_volt_self(void);
 /*******************global function declaration*****************/
+
+
+
 
 #if !defined CONFIG_MTK_PMIC_NEW_ARCH
 enum PMIC_FAKE_IRQ_ENUM {
@@ -1035,19 +1046,31 @@ static void send_key_event(u32 keycode, u32 flag)
 {
 	switch (keycode) {
 	case DW_KEY:
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#if defined(CONFIG_CUSTOM_HEADSET_FEATURE)&&!defined(CONFIG_KERNEL_CUSTOM_FACTORY)
+		input_report_key(accdet_input_dev, MEDIA_NEXT_SCAN_CODE, flag);
+#else
 		input_report_key(accdet_input_dev, KEY_VOLUMEDOWN, flag);
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 		input_sync(accdet_input_dev);
 		pr_debug("accdet KEY_VOLUMEDOWN %d\n", flag);
 		break;
 	case UP_KEY:
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#if defined(CONFIG_CUSTOM_HEADSET_FEATURE)&&!defined(CONFIG_KERNEL_CUSTOM_FACTORY)
+		input_report_key(accdet_input_dev, MEDIA_PREVIOUS_SCAN_CODE, flag);
+#else
 		input_report_key(accdet_input_dev, KEY_VOLUMEUP, flag);
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 		input_sync(accdet_input_dev);
 		pr_debug("accdet KEY_VOLUMEUP %d\n", flag);
 		break;
 	case MD_KEY:
-		input_report_key(accdet_input_dev, KEY_PLAYPAUSE, flag);
+		input_report_key(accdet_input_dev, KEY_MEDIA, flag);//lct.cfy modify for factory test KEY_PLAYPAUSE
 		input_sync(accdet_input_dev);
-		pr_debug("accdet KEY_PLAYPAUSE %d\n", flag);
+		pr_debug("accdet KEY_MEDIA %d\n", flag);//lct.cfy modify for factory test KEY_PLAYPAUSE
 		break;
 	case AS_KEY:
 		input_report_key(accdet_input_dev, KEY_VOICECOMMAND, flag);
@@ -1079,6 +1102,8 @@ static void send_accdet_status_event(u32 cable_type, u32 status)
 		/* when plug 4-pole out, 3-pole plug out should also be
 		 * reported for slow plug-in case
 		 */
+
+
 		if (status == 0)
 			input_report_switch(accdet_input_dev,
 				SW_HEADPHONE_INSERT, status);
@@ -3327,9 +3352,16 @@ int mt_accdet_probe(struct platform_device *dev)
 	}
 
 	__set_bit(EV_KEY, accdet_input_dev->evbit);
-	__set_bit(KEY_PLAYPAUSE, accdet_input_dev->keybit);
+	__set_bit(KEY_MEDIA, accdet_input_dev->keybit);//lct.cfy modify for factory test KEY_PLAYPAUSE
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#if defined(CONFIG_CUSTOM_HEADSET_FEATURE)&&!defined(CONFIG_KERNEL_CUSTOM_FACTORY)
+	__set_bit(MEDIA_NEXT_SCAN_CODE, accdet_input_dev->keybit);
+	__set_bit(MEDIA_PREVIOUS_SCAN_CODE, accdet_input_dev->keybit);
+#else
 	__set_bit(KEY_VOLUMEDOWN, accdet_input_dev->keybit);
 	__set_bit(KEY_VOLUMEUP, accdet_input_dev->keybit);
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 	__set_bit(KEY_VOICECOMMAND, accdet_input_dev->keybit);
 
 	__set_bit(EV_SW, accdet_input_dev->evbit);
