@@ -128,11 +128,15 @@ signed int battery_get_uisoc(void)
 
 signed int battery_get_bat_temperature(void)
 {
+#if 1
 	/* TODO */
 	if (is_battery_init_done())
 		return force_get_tbat(true);
 	else
 		return -127;
+#else
+		return 25;
+#endif
 }
 
 signed int battery_get_ibus(void)
