@@ -16,6 +16,7 @@
 #include <linux/string.h>
 #include <linux/sysfs.h>
 #include <linux/uaccess.h>
+#include <linux/cpufreq.h>
 
 #if IS_ENABLED(CONFIG_MTK_WATCHDOG)
 #include <mtk_wd_api.h>
@@ -135,6 +136,36 @@ static struct attribute_group bootinfo_attr_group = {
 	.attrs = bootinfo_attrs,
 };
 
+static int cpumaxfreq_show(struct seq_file *m, void *v)
+{
+	unsigned long maxfreq, freq;
+	int i;
+
+	maxfreq = cpufreq_quick_get_max(0);
+	for_each_possible_cpu(i) {
+		freq = cpufreq_quick_get_max(i);
+		if (freq > maxfreq)
+			maxfreq = freq;
+	}
+	/* value is used for setting cpumaxfreq */
+	maxfreq /= 10000;
+	seq_printf(m,"%lu.%02lu", maxfreq/100, maxfreq%100);
+
+	return 0;
+}
+
+static int cpumaxfreq_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, &cpumaxfreq_show, NULL);
+}
+
+static const struct file_operations proc_cpumaxfreq_operations = {
+	.open       = cpumaxfreq_open,
+	.read       = seq_read,
+	.llseek     = seq_lseek,
+	.release    = seq_release,
+};
+
 int ksysfs_bootinfo_init(void)
 {
 	int error;
@@ -146,6 +177,8 @@ int ksysfs_bootinfo_init(void)
 	error = sysfs_create_group(bootinfo_kobj, &bootinfo_attr_group);
 	if (error)
 		kobject_put(bootinfo_kobj);
+
+	proc_create("cpumaxfreq", 0, NULL, &proc_cpumaxfreq_operations);
 
 	return error;
 }
