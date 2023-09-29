@@ -963,6 +963,12 @@ config TARGET_PROJECT_K7B
         help
         Custom project for k7b_pcb.
 
+config BACKLIGHT_SUPPORT_2047_FEATURE
+        default n
+        bool "Custom for hardware backlight 2047 feature"
+        help
+        Custom for backlight 2047 feature.
+
 config SECCOMP
 	bool "Enable seccomp to safely compute untrusted bytecode"
 	---help---
