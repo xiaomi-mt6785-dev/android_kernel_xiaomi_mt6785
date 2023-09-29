@@ -957,6 +957,12 @@ endif
 config ARCH_ENABLE_SPLIT_PMD_PTLOCK
 	def_bool y if PGTABLE_LEVELS > 2
 
+config TARGET_PROJECT_K7B
+        default n
+        bool "Custom project for hardware k7b_pcb"
+        help
+        Custom project for k7b_pcb.
+
 config SECCOMP
 	bool "Enable seccomp to safely compute untrusted bytecode"
 	---help---
