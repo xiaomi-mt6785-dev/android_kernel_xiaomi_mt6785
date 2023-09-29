@@ -145,6 +145,9 @@ struct DDP_MMP_Events {
 	mmp_event primary_chg_fps_req;
 	mmp_event primary_chg_fps_notify;
 	mmp_event primary_dynfps_chg_fps;
+#ifdef CONFIG_ADB_WRITE_PARAM_FEATURE
+	mmp_event dsi_wrlcm;
+#endif
 };
 
 struct DDP_MMP_Events *ddp_mmp_get_events(void);
