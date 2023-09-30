@@ -3,6 +3,7 @@
  * mtu3_qmu.c - Queue Management Unit driver for device controller
  *
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * Author: Chunfeng Yun <chunfeng.yun@mediatek.com>
  */
@@ -557,6 +558,12 @@ static void qmu_done_rx(struct mtu3 *mtu, u8 epnum)
 	struct usb_request *req = NULL;
 	struct mtu3_request *mreq;
 	dma_addr_t cur_gpd_dma;
+
+	if (!(mep->flags & MTU3_EP_ENABLED)) {
+		dev_dbg(mtu->dev, "%s EP%d is already disabled\n",
+			__func__, epnum);
+		return;
+	}
 
 	cur_gpd_dma = read_rxq_cur_addr(mbase, epnum);
 	gpd_current = gpd_dma_to_virt(ring, cur_gpd_dma);
