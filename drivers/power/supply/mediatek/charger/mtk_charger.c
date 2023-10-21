@@ -3460,7 +3460,7 @@ void sc_select_charging_current(struct charger_manager *info, struct charger_dat
 
 void sc_init(struct smartcharging *sc)
 {
-	sc->enable = false;
+	sc->enable = true;
 	sc->battery_size = 3000;
 	sc->start_time = 0;
 	sc->end_time = 80000;
