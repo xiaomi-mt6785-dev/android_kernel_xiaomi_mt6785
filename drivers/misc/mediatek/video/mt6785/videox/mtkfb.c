@@ -2608,13 +2608,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 
 	DISPMSG("%s: fb_pa = %pa\n", __func__, &fb_base);
 
-	atomic_set(&fbdev->resume_pending, 0);
-	init_waitqueue_head(&fbdev->resume_wait_q);
-	fbdev->is_prim_panel = true;
-	prim_fbi = fbi;
-	atomic_set(&prim_panel_is_on, false);
-	INIT_DELAYED_WORK(&prim_panel_work, prim_panel_off_delayed_work);
-
 	disp_hal_allocate_framebuffer(fb_base, (fb_base + vramsize - 1),
 				(unsigned long *)(&fbdev->fb_va_base), &fb_mva);
 
@@ -2731,6 +2724,13 @@ static int mtkfb_probe(struct platform_device *pdev)
 #endif
 	fbdev->state = MTKFB_ACTIVE;
 
+	atomic_set(&fbdev->resume_pending, 0);
+	init_waitqueue_head(&fbdev->resume_wait_q);
+	fbdev->is_prim_panel = true;
+	prim_fbi = fbi;
+	atomic_set(&prim_panel_is_on, false);
+	INIT_DELAYED_WORK(&prim_panel_work, prim_panel_off_delayed_work);
+
 	MSG_FUNC_LEAVE();
 	pr_info("disp driver(2) %s end\n", __func__);
 	return 0;
@@ -2750,6 +2750,9 @@ static int mtkfb_remove(struct platform_device *pdev)
 
 	MSG_FUNC_ENTER();
 	/* FIXME: wait till completion of pending events */
+
+	atomic_set(&prim_panel_is_on, false);
+	cancel_delayed_work(&prim_panel_work);
 
 	fbdev->state = MTKFB_DISABLED;
 	mtkfb_free_resources(fbdev, saved_state);
@@ -3086,9 +3089,13 @@ int mtkfb_prim_panel_unblank(int timeout)
 
 	if (prim_fbi) {
 		fbdev = (struct mtkfb_device *)prim_fbi->par;
-		wait_event_timeout(fbdev->resume_wait_q,
+		ret = wait_event_timeout(fbdev->resume_wait_q,
 				!atomic_read(&fbdev->resume_pending),
 				msecs_to_jiffies(WAIT_RESUME_TIMEOUT));
+		if (!ret) {
+			printk("Primary fb resume timeout\n");
+			return -ETIMEDOUT;
+		}
 		console_lock();
 		if (!lock_fb_info(prim_fbi)) {
 			console_unlock();
