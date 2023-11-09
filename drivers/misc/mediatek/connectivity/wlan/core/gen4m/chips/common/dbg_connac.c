@@ -2166,7 +2166,7 @@ int connac_get_rx_rate_info(IN struct ADAPTER *prAdapter,
 	if (prStaRec) {
 		ucWlanIdx = prStaRec->ucWlanIndex;
 	} else {
-		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
+		//DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
 		return -1;
 	}
 
