@@ -1484,7 +1484,7 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 
 	if (sme->crypto.wpa_versions & NL80211_WPA_VERSION_1)
 		prWpaInfo->u4WpaVersion = IW_AUTH_WPA_VERSION_WPA;
-	else if (sme->crypto.wpa_versions & NL80211_WPA_VERSION_2)
+	else if ((sme->crypto.wpa_versions & NL80211_WPA_VERSION_2) || (sme->crypto.wpa_versions & NL80211_WPA_VERSION_3))
 		prWpaInfo->u4WpaVersion =
 			IW_AUTH_WPA_VERSION_WPA2;
 	else
