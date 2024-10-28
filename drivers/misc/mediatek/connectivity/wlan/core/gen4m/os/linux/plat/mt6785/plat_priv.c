@@ -39,7 +39,7 @@ int32_t kalBoostCpu(IN struct ADAPTER *prAdapter,
 		    IN uint32_t u4TarPerfLevel,
 		    IN uint32_t u4BoostCpuTh)
 {
-	struct ppm_limit_data freq_to_set[MAX_CLUSTER_NUM];
+	struct cpu_ctrl_data freq_to_set[MAX_CLUSTER_NUM];
 	int32_t i = 0, i4Freq = -1;
 #ifdef WLAN_FORCE_DDR_OPP
 	static struct pm_qos_request wifi_qos_request;
