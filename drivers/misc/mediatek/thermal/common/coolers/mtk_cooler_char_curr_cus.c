@@ -26,6 +26,7 @@
 #include <linux/kobject.h>
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
+#include <linux/seq_file.h>
 
 #include "mt-plat/mtk_thermal_monitor.h"
 #if (CONFIG_MTK_GAUGE_VERSION == 30)
