@@ -147,6 +147,13 @@ else
 endif
 endif
 
+# 2021.02.04 longcheer jiangshitian change for pd-chg and main-cam thermal begin
+ifeq ($(CONFIG_TARGET_PROJECT_K7B),y)
+obj-$(CONFIG_THERMAL) += mtk_ts_btspdchg.o
+obj-$(CONFIG_THERMAL) += mtk_ts_btsmcam.o
+endif
+# 2021.02.04 longcheer jiangshitian change for pd-chg and main-cam thermal end
+
 obj-$(CONFIG_THERMAL) += mtk_tsAll.o
 obj-$(CONFIG_THERMAL) += mtk_ts_imgsensor.o
 endif
