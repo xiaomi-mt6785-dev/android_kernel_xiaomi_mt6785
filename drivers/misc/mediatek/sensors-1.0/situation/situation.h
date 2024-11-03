@@ -17,6 +17,7 @@
 #include "sensor_attr.h"
 #include "sensor_event.h"
 #include <linux/pm_wakeup.h>
+#include <linux/vmalloc.h>
 
 enum situation_index_table {
 	inpocket = 0,
