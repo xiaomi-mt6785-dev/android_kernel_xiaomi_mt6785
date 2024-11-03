@@ -827,6 +827,15 @@ config CUSTOM_BATTERY_EXTERNAL_CHANNEL
           It depends on MTK_PMIC_CHIP_MT6359P
           Added for Battery System test
 
+config MTBF_SUPPORT
+	bool "MTBF_SUPPORT"
+	help
+	  Say Y here to enable debugging mtbf
+	  and drivers.
+
+source "drivers/power/supply/ti/Kconfig"
+source "drivers/power/supply/maxim/Kconfig"
+
 if MACH_MT6768
 source "drivers/power/supply/mediatek/battery/Kconfig"
 source "drivers/power/supply/mediatek/charger/Kconfig"
