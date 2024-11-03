@@ -42,9 +42,9 @@
 #define BAT_VOLTAGE_HIGH_BOUND 3450
 #define LOW_TMP_BAT_VOLTAGE_LOW_BOUND 3350
 #define SHUTDOWN_TIME 40
-#define AVGVBAT_ARRAY_SIZE 30
+#define AVGVBAT_ARRAY_SIZE 15 /* changed for too low shutdown voltage on 20210224 */
 #define INIT_VOLTAGE 3450
-#define BATTERY_SHUTDOWN_TEMPERATURE 60
+#define BATTERY_SHUTDOWN_TEMPERATURE 70
 
 /* ============================================================ */
 /* typedef and Struct*/
@@ -580,6 +580,16 @@ struct fuel_gauge_custom_data {
 	int daemon_log_level;
 	int record_log;
 
+
+};
+
+extern bool suppld_maxim;
+
+enum {
+	BATTERY_VENDOR_NVT = 0,
+	BATTERY_VENDOR_GY = 1,
+	BATTERY_VENDOR_XWD = 2,
+	BATTERY_VENDOR_UNKNOWN = 3
 };
 
 struct FUELGAUGE_TEMPERATURE {
@@ -659,6 +669,13 @@ struct battery_data {
 	/* Add for Battery Service */
 	int BAT_batt_vol;
 	int BAT_batt_temp;
+	bool CHG_FULL_STATUS;
+};
+
+struct bms_data {
+	struct power_supply_desc psd;
+	struct power_supply *psy;
+	struct power_supply_config cfg;
 };
 
 struct BAT_EC_Struct {
@@ -811,6 +828,7 @@ struct mtk_battery {
 /*battery status*/
 	int soc;
 	int ui_soc;
+	int soc_raw;
 	int d_saved_car;
 	int tbat_precise;
 
@@ -877,6 +895,10 @@ struct mtk_battery {
 	int bat_cycle_thr;
 	int bat_cycle_car;
 	int bat_cycle_ncar;
+
+/* maxim cycle */
+	int cycle_count;
+	int maxim_cycle_count;
 
 /* cust req ocv data */
 	int algo_qmax;
@@ -993,6 +1015,7 @@ extern int battery_get_charger_zcv(void);
 extern bool is_fg_disabled(void);
 extern int battery_notifier(int event);
 extern bool set_charge_power_sel(enum CHARGE_SEL select);
+extern int charger_manager_get_soc_decimal_rate(void);
 
 /* pmic */
 extern int pmic_get_battery_voltage(void);
@@ -1058,6 +1081,7 @@ extern void gm3_log_init(void);
 extern void gm3_log_notify(unsigned int interrupt);
 extern void gm3_log_dump(bool force);
 extern void gm3_log_dump_nafg(int type);
+extern void mtk_chaging_enable_write(int en);
 
 
 /* query function , review */
@@ -1077,4 +1101,10 @@ void zcv_filter_dump(struct zcv_filter *zf);
 bool zcv_check(struct zcv_filter *zf);
 void zcv_filter_init(struct zcv_filter *zf);
 
+/*Get batt resistance */
+extern int battery_get_bat_resistance_id(void);
+
+/* ffc */
+extern int chg_get_fastcharge_mode(void);
+extern int chg_set_fastcharge_mode(bool enable);
 #endif /* __MTK_BATTERY_INTF_H__ */
