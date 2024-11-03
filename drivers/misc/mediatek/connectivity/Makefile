@@ -87,8 +87,14 @@ endif
         # for gen4m options
         export CONFIG_MTK_COMBO_WIFI_HIF=axi
         export MTK_COMBO_CHIP=CONNAC
-        export WLAN_CHIP_ID=6765
+        export WLAN_CHIP_ID=6785
         export MTK_ANDROID_WMT=y
+        export MTK_ANDROID_EMI=y
+        export CONNAC_VER=1_0
+        export CFG_BUILD_CONNAC2=false
+        export WIFI_IP_SET=2
+        export MTK_WLAN_SERVICE=yes
+        export BT_PLATFORM=6785
 
         # Do build-in for xxx.c checking
         subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
@@ -96,6 +102,14 @@ endif
         obj-y += wmt_drv/
         obj-y += wmt_chrdev_wifi/
         obj-y += wlan_drv_gen4m/
+
+        obj-$(CONFIG_MTK_COMBO) += common/
+        obj-$(CONFIG_MTK_COMBO_WIFI) += wlan/adaptor/
+        obj-$(CONFIG_MTK_COMBO_CHIP_CONSYS_6785) += wlan/core/gen4m/
+        obj-$(CONFIG_MTK_COMBO_BT) += bt/mt66xx/wmt/
+        obj-$(CONFIG_MTK_COMBO_GPS) += gps/
+        obj-$(CONFIG_MTK_FMRADIO) += fmradio/
+        obj-$(CONFIG_MTK_CONNFEM) += connfem/
     endif
 
 # Otherwise we were called directly from the command line;
