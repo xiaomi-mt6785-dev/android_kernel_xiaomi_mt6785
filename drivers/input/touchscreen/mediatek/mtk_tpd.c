@@ -41,6 +41,9 @@ struct pinctrl *pinctrl1;
 struct pinctrl_state *pins_default;
 struct pinctrl_state *eint_as_int, *eint_output0,
 		*eint_output1, *rst_output0, *rst_output1;
+#if defined(CONFIG_TOUCHSCREEN_COMMON)
+bool tpd_gesture_flag;
+#endif
 const struct of_device_id touch_of_match[] = {
 	{ .compatible = "mediatek,touch", },
 	{ .compatible = "mediatek,mt8167-touch", },
