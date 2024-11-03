@@ -31,6 +31,7 @@ enum {
 	ps,
 	baro,
 	sar,
+	lightsecondary,
 	maxhandle,
 };
 
@@ -67,6 +68,9 @@ inline int sensor_to_handle(int sensor)
 	case ID_SAR:
 		handle = sar;
 		break;
+	case ID_LIGHTSECONDARY:
+		handle = lightsecondary;
+		break;
 	}
 	return handle;
 }
@@ -96,6 +100,9 @@ static inline int handle_to_sensor(int handle)
 		break;
 	case sar:
 		sensor = ID_SAR;
+		break;
+	case lightsecondary:
+		sensor = ID_LIGHTSECONDARY;
 		break;
 	}
 	return sensor;
