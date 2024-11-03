@@ -190,12 +190,13 @@
 				  "ldo3_oc_evt", "ldo5_oc_evt",
 				  "ldo1_pgb_evt", "ldo2_pgb_evt",
 				  "ldo3_pgb_evt", "ldo5_pgb_evt";
+		sdcard_det_en = <1>;
+		sdcard_hlact = <0>;
 		mt_pmic_vfp_ldo_reg: ldo1 {
 			regulator-compatible = "LDO1";
 			regulator-name = "VFP";
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <3600000>;
-			regulator-always-on;
 		};
 		mt_pmic_vtp_ldo_reg: ldo2 {
 			regulator-compatible = "LDO2";
