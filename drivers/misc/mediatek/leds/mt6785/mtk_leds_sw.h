@@ -42,7 +42,11 @@ typedef int (*cust_set_brightness) (int level);
 /* 10bit backlight level */
 #define LED_INCREASE_LED_LEVEL_MTKPATCH
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+#define MT_LED_INTERNAL_LEVEL_BIT_CNT 12
+#else
 #define MT_LED_INTERNAL_LEVEL_BIT_CNT 10
+#endif
 #endif
 
 /******************************************************************************
