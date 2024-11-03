@@ -29,6 +29,7 @@ else
 obj-$(CONFIG_MTK_POWER_THROTTLING_COMMON) += power_throttling/
 endif
 
+obj-$(CONFIG_MTK_ULTRASND_PROXIMITY) += elliptic/
 obj-$(CONFIG_MTK_RTC)	+= rtc/
 obj-$(CONFIG_MTK_ACCDET) += accdet/
 obj-$(CONFIG_MTK_AUXADC) += auxadc/
