@@ -15,21 +15,6 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
-MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
-ARCH_MTK_PROJECT := $(subst ",,$(CONFIG_ARCH_MTK_PROJECT))
-
-MTK_CUSTOM_PATH  := $(srctree)/drivers/misc/mediatek
+obj-y += DW9714AF.o
 
 
-subdir-ccflags-y += -I$(MTK_CUSTOM_PATH)/lens/mtk/main3/inc
-
-ifeq ($(CONFIG_MACH_MT6779), y)
-  ccflags-y += -I$(srctree)/drivers/misc/mediatek/timer/timesync/
-endif
-
-obj-$(CONFIG_MTK_LENS)    += main3af.o
-
-main3af-y  += main3_lens.o
-main3af-y  += common/bu24253af/BU24253AF.o
-main3af-y  += common/gt9772af/GT9772AF.o
-main3af-y  += common/dw9714af/DW9714AF.o
