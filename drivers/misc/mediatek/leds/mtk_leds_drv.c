@@ -62,13 +62,15 @@ static int I2C_SET_FOR_BACKLIGHT  = 350;
 #define CONTROL_BL_TEMPERATURE
 #endif
 
-#define MT_LED_INTERNAL_LEVEL_BIT_CNT 10
-
 /******************************************************************************
  * for DISP backlight High resolution
  *****************************************************************************/
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+#define LED_INTERNAL_LEVEL_BIT_CNT 12
+#else
 #define LED_INTERNAL_LEVEL_BIT_CNT 10
+#endif
 #endif
 /* Fix dependency if CONFIG_MTK_LCM not ready */
 void __weak disp_aal_notify_backlight_changed(int bl_1024) {};
@@ -91,6 +93,7 @@ static unsigned int limit_flag;
 static unsigned int last_level;
 static unsigned int current_level;
 static DEFINE_MUTEX(bl_level_limit_mutex);
+unsigned int thermal_current_brightness;
 
 /****************************************************************************
  * external functions for display
@@ -136,8 +139,13 @@ int setMaxbrightness(int max_level, int enable)
 	}
 #else
 	pr_info("Set max brightness go through AAL\n");
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+	disp_bls_set_max_backlight(max_level);
+#else
 	disp_bls_set_max_backlight(((((1 << LED_INTERNAL_LEVEL_BIT_CNT) -
 				      1) * max_level + 127) / 255));
+#endif
+	disp_aal_notify_backlight_changed(thermal_current_brightness);
 #endif				/* endif CONFIG_MTK_AAL_SUPPORT */
 	return 0;
 }
@@ -179,9 +187,13 @@ static int mt65xx_led_set_cust(struct cust_mt65xx_led *cust, int level)
 #endif
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
 	if (cust->mode == MT65XX_LED_MODE_CUST_BLS_PWM) {
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+		mt_mt65xx_led_set_cust(cust,level);
+#else
 		mt_mt65xx_led_set_cust(cust,
 				       ((((1 << LED_INTERNAL_LEVEL_BIT_CNT) -
 					  1) * level + 127) / 255));
+#endif
 	} else {
 		mt_mt65xx_led_set_cust(cust, level);
 	}
@@ -305,12 +317,17 @@ int mt65xx_leds_brightness_set(enum mt65xx_led_type type,
 
 	if (type < 0 || type >= MT65XX_LED_TYPE_TOTAL)
 		return -1;
-
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+		if (level > 2047)
+			level = 2047;
+		else if (level < 0)
+			level = 0;
+#else
 	if (level > LED_FULL)
 		level = LED_FULL;
 	else if (level < 0)
 		level = 0;
-
+#endif
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 	retval = gpio_request(I2C_SET_FOR_BACKLIGHT, "i2c_set_for_backlight");
 	if (retval)
@@ -333,7 +350,6 @@ int mt65xx_leds_brightness_set(enum mt65xx_led_type type,
 	}
 	gpio_free(I2C_SET_FOR_BACKLIGHT);
 #endif
-
 	val = mt65xx_led_set_cust(&cust_led_list[type], level);
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 	if (strcmp(cust_led_list[type].name, "lcd-backlight") == 0) {
@@ -355,10 +371,17 @@ int backlight_brightness_set(int level)
 {
 	struct cust_mt65xx_led *cust_led_list = mt_get_cust_led_list();
 
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+	if (level > 2047)
+		level = 2047;
+	else if (level < 0)
+		level = 0;
+#else
 	if (level > ((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1))
 		level = ((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1);
 	else if (level < 0)
 		level = 0;
+#endif
 
 	if (MT65XX_LED_MODE_CUST_BLS_PWM ==
 	    cust_led_list[MT65XX_LED_TYPE_LCD].mode) {
@@ -384,10 +407,15 @@ int backlight_brightness_set(int level)
 		    mt_mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
 					   level);
 	} else {
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+		return mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
+					   level);
+#else
 		return mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
 					   (level >>
 					    (MT_LED_INTERNAL_LEVEL_BIT_CNT -
 					     8)));
+#endif
 	}
 
 }
@@ -487,7 +515,11 @@ static int mt65xx_leds_probe(struct platform_device *pdev)
 #ifdef CONTROL_BL_TEMPERATURE
 
 	last_level = 0;
+#ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
+	limit = 2047;
+#else
 	limit = 255;
+#endif
 	limit_flag = 0;
 	current_level = 0;
 	pr_debug
