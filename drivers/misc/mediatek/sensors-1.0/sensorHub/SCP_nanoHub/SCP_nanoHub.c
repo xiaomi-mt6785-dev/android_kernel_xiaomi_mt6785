@@ -860,7 +860,7 @@ static void SCP_sensorHub_init_sensor_state(void)
 
 	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].sensorType =
 		SENSOR_TYPE_PICK_UP_GESTURE;
-	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].rate = SENSOR_RATE_ONESHOT;
+	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].rate = SENSOR_RATE_ONCHANGE;
 	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].timestamp_filter = false;
 
 	mSensorState[SENSOR_TYPE_WAKE_GESTURE].sensorType =
@@ -907,6 +907,13 @@ static void SCP_sensorHub_init_sensor_state(void)
 
 	mSensorState[SENSOR_TYPE_SAR].sensorType = SENSOR_TYPE_SAR;
 	mSensorState[SENSOR_TYPE_SAR].timestamp_filter = false;
+
+	mSensorState[SENSOR_TYPE_LIGHTSECONDARY].sensorType = SENSOR_TYPE_LIGHTSECONDARY;
+	mSensorState[SENSOR_TYPE_LIGHTSECONDARY].timestamp_filter = false;
+#ifdef CONFIG_MTK_ULTRASND_PROXIMITY
+	mSensorState[SENSOR_TYPE_ELLIPTIC_FUSION].sensorType = SENSOR_TYPE_ELLIPTIC_FUSION;
+	mSensorState[SENSOR_TYPE_ELLIPTIC_FUSION].timestamp_filter = false;
+#endif
 }
 
 static void init_sensor_config_cmd(struct ConfigCmd *cmd,
@@ -1736,6 +1743,12 @@ int sensor_get_data_from_hub(uint8_t sensorType,
 		data->sar_event.data[1] = data_t->sar_event.data[1];
 		data->sar_event.data[2] = data_t->sar_event.data[2];
 		break;
+	case ID_LIGHTSECONDARY:
+		data->time_stamp = data_t->time_stamp;
+		data->sar_event.data[0] = data_t->sar_event.data[0];
+		data->sar_event.data[1] = data_t->sar_event.data[1];
+		data->sar_event.data[2] = data_t->sar_event.data[2];
+		break;
 	default:
 		err = -1;
 		break;
@@ -2085,6 +2098,29 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 		break;
 	case ID_SAR:
 		req.set_cust_req.sensorType = ID_SAR;
+		req.set_cust_req.action = SENSOR_HUB_SET_CUST;
+		switch (action) {
+		case CUST_ACTION_GET_SENSOR_INFO:
+			req.set_cust_req.getInfo.action =
+				CUST_ACTION_GET_SENSOR_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
+				custData) + sizeof(req.set_cust_req.getInfo);
+			break;
+/*2020.4.11 longcheer liushuwen add start for sar TX_POWER*/
+		case CUST_ACTION_SET_TRACE:
+			req.set_cust_req.setTrace.action =
+				CUST_ACTION_SET_TRACE;
+			req.set_cust_req.setTrace.trace = *((int32_t *) data);
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
+				custData)+ sizeof(req.set_cust_req.setTrace);
+		break;
+ /*2020.4.11 longcheer liushuwen add end for sar TX_POWER*/
+		default:
+			return -1;
+		}
+		break;
+	case ID_LIGHTSECONDARY:
+		req.set_cust_req.sensorType = ID_LIGHTSECONDARY;
 		req.set_cust_req.action = SENSOR_HUB_SET_CUST;
 		switch (action) {
 		case CUST_ACTION_GET_SENSOR_INFO:
