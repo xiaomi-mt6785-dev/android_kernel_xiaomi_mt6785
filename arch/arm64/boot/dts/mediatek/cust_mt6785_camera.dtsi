@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2019 MediaTek Inc.
 */
+
 /* CAMERA GPIO standardization */
 &pio {
 	camera0_rst_low: camera0_rst_output_low@gpio118 {
@@ -138,18 +139,6 @@
 			output-high;
 		};
 	};
-	camera2_vcamd_off: camera2_vcamd_output_low@gpio14 {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO14__FUNC_GPIO14>;
-			output-low;
-		};
-	};
-	camera2_vcamd_on: camera2_vcamd_output_high@gpio14 {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO14__FUNC_GPIO14>;
-			output-high;
-		};
-	};
 
 	camera0_mclk_2ma: camera0_mclk_2ma@gpio116 {
 		pins_cmd_dat {
@@ -258,7 +247,6 @@
 			"cam1_ldo_vcama_0", "cam1_ldo_vcama_1",
 			"cam1_ldo_vcamd_0", "cam1_ldo_vcamd_1",
 			"cam2_ldo_vcama_0", "cam2_ldo_vcama_1",
-			"cam2_ldo_vcamd_0", "cam2_ldo_vcamd_1",
 			"cam0_mclk_off",
 			"cam0_mclk_2mA", "cam0_mclk_4mA",
 			"cam0_mclk_6mA", "cam0_mclk_8mA",
@@ -291,8 +279,6 @@
 	pinctrl-20 = <&camera1_vcamd_on>;
 	pinctrl-21 = <&camera2_vcama_off>;
 	pinctrl-22 = <&camera2_vcama_on>;
-	pinctrl-23 = <&camera2_vcamd_off>;
-	pinctrl-24 = <&camera2_vcamd_on>;
 	pinctrl-25 = <&camera0_mclk_off>;
 	pinctrl-26 = <&camera0_mclk_2ma>;
 	pinctrl-27 = <&camera0_mclk_4ma>;
