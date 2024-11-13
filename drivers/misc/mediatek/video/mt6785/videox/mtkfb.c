@@ -2510,6 +2510,7 @@ static struct fb_info *allocate_fb_by_index(struct device *dev)
 	return fb_dev;
 }
 #endif
+
 //2020.11.19 longcheer kouxiangxiang add for node start
 static ssize_t fb_lcd_name(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -2553,6 +2554,50 @@ static int lcd_node_create_sysfs(void)
    }*/
    return 0;
 }
+
+// add product node for kernel logo
+static char g_product_id[128];
+static struct kobject *msm_product_name = NULL;
+static ssize_t product_name_show(struct kobject *dev,
+		struct kobj_attribute *attr, char *buf)
+{
+   ssize_t ret = 0;
+   pr_debug("%s: g_product_id =%s\n", __func__, g_product_id);
+   sprintf(buf, "%s\n", g_product_id);
+   ret = strlen(buf) + 1;
+   return ret;
+}
+static struct kobj_attribute dev_attr_product_name =
+      __ATTR(product_name, S_IRUGO, product_name_show, NULL);
+
+static int msm_product_name_create_sysfs(void)
+{
+	int ret;
+	msm_product_name = kobject_create_and_add("android_product",NULL);
+	pr_debug("%s: g_product_id =%s, msm_product_name=%s\n", __func__, g_product_id, msm_product_name);
+
+	if (msm_product_name == NULL) {
+		pr_err("%s: failed \n", __func__);
+		ret = -ENOMEM;
+		return ret;
+	}
+
+	ret = sysfs_create_file(msm_product_name,&dev_attr_product_name.attr);
+	if (ret) {
+    	pr_err("%s: failed \n", __func__);
+    	kobject_del(msm_product_name);
+	}
+
+	return 0;
+}
+
+static int __init lcm_get_product_type(char *str)
+{
+  	strcpy(g_product_id, str);
+	pr_debug("[: %s %d]androidboot.product.vendor.sku=%s \n",__FUNCTION__,__LINE__,g_product_id);
+  	return 1;
+}
+__setup("androidboot.product.vendor.sku=", lcm_get_product_type);
 
 static int mtkfb_probe(struct platform_device *pdev)
 {
@@ -2643,6 +2688,7 @@ static int mtkfb_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto cleanup;
 	}
+	msm_product_name_create_sysfs();
 	lcd_node_create_sysfs();
 	init_state++; /* 2 */
 
