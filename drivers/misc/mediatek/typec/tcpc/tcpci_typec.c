@@ -2129,7 +2129,7 @@ static inline int typec_handle_drp_try_timeout(struct tcpc_device *tcpc)
 static inline int typec_handle_debounce_timeout(struct tcpc_device *tcpc)
 {
 #ifdef CONFIG_TYPEC_CAP_NORP_SRC
-	if (typec_is_cc_no_res() && tcpci_check_vbus_valid(tcpc)
+	if (typec_is_cc_no_res() && tcpci_check_vbus_valid_from_ic(tcpc)
 		&& (tcpc->typec_state == typec_unattached_snk))
 		return typec_norp_src_attached_entry(tcpc);
 #endif
@@ -2516,6 +2516,13 @@ static inline int typec_handle_vbus_absent(struct tcpc_device *tcpc)
 int tcpc_typec_handle_ps_change(struct tcpc_device *tcpc, int vbus_level)
 {
 	tcpc->typec_reach_vsafe0v = false;
+
+	// open vsafe0.8v irq
+	if (vbus_level >= TCPC_VBUS_VALID) {
+		typec_disable_low_power_mode(tcpc);
+	} else {
+		typec_enter_low_power_mode(tcpc);
+	}
 
 #ifdef CONFIG_TYPEC_CHECK_LEGACY_CABLE
 	if (tcpc->typec_legacy_cable) {
