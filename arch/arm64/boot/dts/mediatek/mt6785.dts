@@ -5940,34 +5940,11 @@ page_owner=on loop.max_part=7";
 	};
 };
 
-&pio {
-	/* bq25970 */
-	bq2597x_int_default: bq2597x_int_default {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO12__FUNC_GPIO12>;
-			slew-rate = <0>;
-			bias-pull-up = <11>;
-		};
-	};
-
-	bq2597x_int_suspend: bq2597x_int_suspend {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO12__FUNC_GPIO12>;
-			slew-rate = <0>;
-			bias-pull-up = <11>;
-		};
-	};
-};
-
 &i2c7 {
 	clock-frequency = <100000>;
 	bq2597x-standalone@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
-		interrupt-parent = <&pio>;
-		interrupts = <12 IRQ_TYPE_EDGE_FALLING 12 0>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&bq2597x_int_default &bq2597x_int_suspend>;
 
 		//ti,bq2597x,bat-ovp-disable;
 		ti,bq2597x,bat-ovp-alarm-disable;
