@@ -2604,15 +2604,6 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 	struct device_node *node = client->dev.of_node;
 	int ret;
 
-	bq_info("client->irq=%d", client->irq);
-	ret = i2c_smbus_read_byte_data(client, BQ2597X_REG_13);
-	if (ret != BQ25968_DEVICE_ID && ret !=SC8551_DEVICE_ID && ret !=BQ25970_DEVICE_ID) {
-		bq_err("failed to communicate with chip\n");
-		return -ENODEV;
-	}
-	bq_info("bq device id=0x%x\n", ret);
-	set_bq2597x_load_flag(true);
-
 	bq = devm_kzalloc(&client->dev, sizeof(struct bq2597x), GFP_KERNEL);
 	if (!bq)
 		return -ENOMEM;
@@ -2691,6 +2682,8 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 	}
 
 	/* determine_initial_status(bq); */
+
+	set_bq2597x_load_flag(true);
 
 	bq_info("bq2597x probe successfully, Part Num:%d, Chip Vendor:%d\n!",
 				bq->part_no, bq->chip_vendor);
