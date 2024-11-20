@@ -176,12 +176,10 @@ int pdc_setup(int idx)
 	}
 
 	if (pd->pd_idx != idx || force_update) {
-		/*
 		if (pd->cap.max_mv[idx] > 5000)
 			enable_vbus_ovp(false);
 		else
 			enable_vbus_ovp(true);
-		*/
 		charger_get_mivr(&oldmivr);
 		mivr = pd->data.min_charger_voltage / 1000;
 		pdc_set_mivr(pd->data.min_charger_voltage);

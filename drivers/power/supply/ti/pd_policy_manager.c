@@ -28,7 +28,7 @@
 #include <linux/power/mtk_intf_mi.h>
 #include <mt-plat/v1/charger_class.h>
 #include <mt-plat/v1/mtk_charger.h>
-
+#include "../../../misc/mediatek/typec/tcpc/inc/tcpm.h"
 
 struct tag_bootmode {
 	u32 size;
@@ -44,7 +44,7 @@ struct tag_bootmode {
 #define PD_SRC_PDO_TYPE_VARIABLE	2
 #define PD_SRC_PDO_TYPE_AUGMENTED	3
 
-#define BATT_MAX_CHG_VOLT		4480
+#define BATT_MAX_CHG_VOLT		4460 //new requirement from xiaomi hw, CP should config 4460
 #define BATT_FAST_CHG_CURR		6000
 #define BUS_MIVR_THRESHOLD		4200
 #define	BUS_OVP_THRESHOLD		12000
@@ -401,7 +401,7 @@ static bool pd_disable_cp_by_jeita_status(struct usbpd_pm *pdpm)
 	if (!pdpm->bms_psy)
 		return false;
 
-	rc = power_supply_get_property(pdpm->bms_psy,
+	rc = power_supply_get_property(pdpm->sw_psy,
 				POWER_SUPPLY_PROP_TEMP, &pval);
 	if (rc < 0) {
 		pr_info("Couldn't get batt temp prop:%d\n", rc);
@@ -1034,13 +1034,17 @@ static int usbpd_pm_enable_sw(struct usbpd_pm *pdpm, bool enable)
 {
 	int ret;
 
-	if (!pdpm->sw_psy) {
-		pdpm->sw_psy = power_supply_get_by_name("battery");
-		if (!pdpm->sw_psy)
-			return -ENODEV;
+	if (!ch1_dev) {
+        ch1_dev = get_charger_by_name("primary_chg");
+        if (!ch1_dev)
+		return -ENODEV;
 	}
 
-	pdpm->sw.charge_enabled = enable;
+	ret = charger_dev_enable(ch1_dev,enable);
+	if(ret < 0) {
+		pr_err("fail to set main charger %d\n",enable);
+	}
+
 	return ret;
 }
 
@@ -1067,6 +1071,7 @@ static void usbpd_pm_evaluate_src_caps(struct usbpd_pm *pdpm)
 {
 	struct pps_cap_bq cap;
 	int ret = 0, i = 0, retry_cnt = 0;
+	union power_supply_propval pval = {0, };
 
 	pr_debug("%s enter.\n", __func__);
 
@@ -1104,6 +1109,9 @@ static void usbpd_pm_evaluate_src_caps(struct usbpd_pm *pdpm)
 				pdpm->apdo_max_curr);
 		if (pdpm->apdo_max_curr <= LOW_POWER_PPS_CURR_THR)
 			pdpm->apdo_max_curr = XIAOMI_LOW_POWER_PPS_CURR_MAX;
+		pval.intval = (pdpm->apdo_max_volt / 1000) * (pdpm->apdo_max_curr / 1000);
+		power_supply_set_property(pdpm->usb_psy,
+			POWER_SUPPLY_PROP_APDO_MAX, &pval);
 	} else {
 		pr_info("Not qualified PPS adapter\n");
 	}
@@ -1346,6 +1354,49 @@ static void usbpd_pm_move_state(struct usbpd_pm *pdpm, enum pm_state state)
 	pdpm->state = state;
 }
 
+// Add for Xiaomi lite charge apapter
+static void usbpd_get_pps_status_max(struct usbpd_pm *pdpm)
+{
+	int ret, apdo_idx = -1;
+	struct tcpm_power_cap_val apdo_cap = {0};
+	u8 cap_idx;
+	//u32 vta_meas, ita_meas, prog_mv;
+
+	/* select TA boundary */
+	cap_idx = 0;
+
+	if (!pdpm->tcpc) {
+		pdpm->tcpc = tcpc_dev_get_by_name("type_c_port0");
+		if (!pdpm->tcpc) {
+		pr_err("get tcpc dev fail\n");
+		}
+	}
+	while (1) {
+		ret = tcpm_inquire_pd_source_apdo(pdpm->tcpc,
+			TCPM_POWER_CAP_APDO_TYPE_PPS,
+			&cap_idx, &apdo_cap);
+		if (ret != TCP_DPM_RET_SUCCESS) {
+			pr_err("inquire pd apdo fail(%d)\n", ret);
+			break;
+		}
+
+		pr_info("cap_idx[%d], %d mv ~ %d mv, %d ma, pl: %d\n", cap_idx,
+			 apdo_cap.min_mv, apdo_cap.max_mv, apdo_cap.ma,
+			 apdo_cap.pwr_limit);
+
+		if (apdo_cap.max_mv < pm_config.min_adapter_volt_required ||
+			apdo_cap.ma < pm_config.min_adapter_curr_required)
+			continue;
+		if (apdo_idx == -1) {
+			apdo_idx = cap_idx;
+			pr_info("select potential cap_idx[%d]\n", cap_idx);
+			pdpm->apdo_max_volt = apdo_cap.max_mv;
+			pdpm->apdo_max_curr = apdo_cap.ma;
+		}
+	}
+}
+// End add
+
 static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 {
 	int ret, rc = 0;
@@ -1364,6 +1415,9 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 		stop_sw = false;
 		recover = false;
 
+		// Add for Xiaomi lite charge adapter
+		usbpd_get_pps_status_max(pdpm);
+		// End add
 		pd_get_batt_current_thermal_level(pdpm, &thermal_level);
 		pdpm->is_temp_out_fc2_range = pd_disable_cp_by_jeita_status(pdpm);
 		pr_info("is_temp_out_fc2_range:%d\n", pdpm->is_temp_out_fc2_range);
@@ -1411,10 +1465,7 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 
 	case PD_PM_STATE_FC2_ENTRY:
 		if (pm_config.fc2_disable_sw) {
-			if (pdpm->sw.charge_enabled) {
-				usbpd_pm_enable_sw(pdpm, false);
-				usbpd_pm_check_sw_enabled(pdpm);
-			}
+			usbpd_pm_enable_sw(pdpm, false);
 			if (!pdpm->sw.charge_enabled)
 				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
 		} else {
@@ -1427,12 +1478,12 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 		if (pdpm->cp.sc8551_bypass_charge_enable == 1
 				&& pdpm->cp.sc8551_charge_mode == SC8551_CHARGE_MODE_BYPASS) {
 			curr_ibus_lmt = curr_fcc_lmt;
-			pdpm->request_voltage = pdpm->cp.vbat_volt + BUS_VOLT_INIT_UP / 2;
+			pdpm->request_voltage = pdpm->cp.vbat_volt *107/100;
 			pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_lmt);
 			pdpm->request_current = min(pdpm->request_current, MAX_BYPASS_CURRENT_MA);
 		} else {
 			curr_ibus_lmt = curr_fcc_lmt >> 1;
-			pdpm->request_voltage = pdpm->cp.vbat_volt * 2 + BUS_VOLT_INIT_UP;
+			pdpm->request_voltage = pdpm->request_voltage = pdpm->cp.vbat_volt *213/100;
 			pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_lmt);
 		}
 
@@ -1586,6 +1637,10 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
 			break;
 		} else {
+			// Add for Xiaomi lite charge adapter
+			usbpd_get_pps_status_max(pdpm);
+			pdpm->request_current = min(pdpm->apdo_max_curr, pm_config.bus_curr_lp_lmt);
+			// End
 			adapter_set_cap_bq(pdpm->request_voltage, pdpm->request_current);
 			pr_info("request_voltage:%d, request_current:%d\n",
 					pdpm->request_voltage, pdpm->request_current);
@@ -1709,6 +1764,7 @@ static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
 {
 	int ret;
 	union power_supply_propval val = {0,};
+	union power_supply_propval pval = {0, };
 
 	/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
 	#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
@@ -1740,6 +1796,9 @@ static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
 	pm_config.bat_volt_lp_lmt = pdpm->bat_volt_max;
 	memset(&pdpm->pdo, 0, sizeof(pdpm->pdo));
 	pm_config.bat_curr_lp_lmt = pdpm->bat_curr_max;
+	pval.intval = 0;
+	power_supply_set_property(pdpm->usb_psy,
+		POWER_SUPPLY_PROP_APDO_MAX, &pval);
 	usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
 }
 
