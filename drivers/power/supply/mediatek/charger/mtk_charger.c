@@ -389,20 +389,14 @@ int charger_manager_enable_power_path(struct charger_consumer *consumer,
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->pp_lock[idx]);
-	info->enable_pp[idx] = en;
-
-	if (info->force_disable_pp[idx])
-		goto out;
-
 	ret = charger_dev_is_powerpath_enabled(chg_dev, &is_en);
 	if (ret < 0) {
 		chr_err("%s: get is power path enabled failed\n", __func__);
-		goto out;
+		return ret;
 	}
 	if (is_en == en) {
 		chr_err("%s: power path is already en = %d\n", __func__, is_en);
-		goto out;
+		return 0;
 	}
 
 	// when input suspend, not open power path
@@ -422,10 +416,7 @@ int charger_manager_enable_power_path(struct charger_consumer *consumer,
 	}
 
 	pr_info("%s: enable power path = %d\n", __func__, en);
-	ret = charger_dev_enable_powerpath(chg_dev, en);
-out:
-	mutex_unlock(&info->pp_lock[idx]);
-	return ret;
+	return charger_dev_enable_powerpath(chg_dev, en);
 }
 
 int charger_manager_force_disable_power_path(struct charger_consumer *consumer,
@@ -1821,10 +1812,10 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 			|| sw_jeita->sm == TEMP_BELOW_T0
 			|| sw_jeita->sm == TEMP_TN1_TO_T0)
 			&& (info->battery_temp
-			<= info->data.temp_t1_thres_plus_x_degree)) {
+			<= info->data.temp_t1_thres)) {
 			if (sw_jeita->sm == TEMP_T0_TO_T1) {
 				chr_err("[SW_JEITA] Battery Temperature between %d and %d !!\n",
-					info->data.temp_t1_thres_plus_x_degree,
+					info->data.temp_t1_thres,
 					info->data.temp_t1p5_thres);
 			}
 			if (sw_jeita->sm == TEMP_BELOW_T0) {
@@ -5270,7 +5261,7 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	struct list_head *pos = NULL;
 	struct list_head *phead = &consumer_head;
 	struct charger_consumer *ptr = NULL;
-	int i, ret;
+	int ret;
 	union power_supply_propval pval = {0,};
 
 	chr_err("%s: starts\n", __func__);
@@ -5289,12 +5280,6 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	mutex_init(&info->charger_lock);
 	mutex_init(&info->charger_pd_lock);
 	mutex_init(&info->cable_out_lock);
-	for (i = 0; i < TOTAL_CHARGER; i++) {
-		mutex_init(&info->pp_lock[i]);
-		info->force_disable_pp[i] = false;
-		info->enable_pp[i] = true;
-	}
-	/*work around for mt6768*/
 	atomic_set(&info->enable_kpoc_shdn, 1);
 	info->charger_wakelock = wakeup_source_register(NULL, "charger suspend wakelock");
 	spin_lock_init(&info->slock);
