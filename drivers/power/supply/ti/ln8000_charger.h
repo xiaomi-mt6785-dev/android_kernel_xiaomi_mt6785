@@ -27,6 +27,22 @@
  */
 #define ASSIGNED_BITS(_end, _start) ((BIT(_end) - BIT(_start)) + BIT(_end))
 
+#define BAT_OVP_FAULT_SHIFT         0
+#define BUS_OVP_FAULT_SHIFT         2
+#define BUS_OCP_FAULT_SHIFT         3
+#define BAT_THERM_FAULT_SHIFT           4
+#define BUS_THERM_FAULT_SHIFT           5
+#define DIE_THERM_FAULT_SHIFT           6
+
+#define BAT_OVP_ALARM_SHIFT         0
+#define BAT_OCP_ALARM_SHIFT         1
+#define BUS_OVP_ALARM_SHIFT         2
+#define BUS_OCP_ALARM_SHIFT         3
+#define BAT_THERM_ALARM_SHIFT           4
+#define BUS_THERM_ALARM_SHIFT           5
+#define DIE_THERM_ALARM_SHIFT           6
+#define BAT_UCP_ALARM_SHIFT         7
+
 /* register map description */
 enum ln8000_int1_desc {
     LN8000_MASK_FAULT_INT           = BIT(7),
@@ -311,6 +327,7 @@ struct ln8000_info {
     bool volt_qual;             /* all voltages are qualified */
     bool usb_present;           /* usb plugged (present) */
     bool chg_en;                /* charging enavbled */
+    bool rcp_en;                /* reverse current protection enabled */
     int vbat_ovp_alarm_th;      /* vbat ovp alarm threshold */
     int vin_ovp_alarm_th;       /* vin ovp alarm threshold */
     int iin_ocp_alarm_th;       /* iin ocp alarm threshold */
@@ -325,6 +342,12 @@ struct ln8000_info {
     int	vbat_uV;                /* battery voltage (uV) */
     int	vbus_uV;                /* input voltage (uV) */
     int	iin_uA;                 /* input current (uV) */
+
+    /* for restore reg_init_val */
+    u8 regulation_ctrl;
+    u8 adc_ctrl;
+    u8 v_float_ctrl;
+    u8 charge_ctrl;
 
 #ifdef LN8000_ROLE_MASTER
     bool ibat_term;             /* battery current below termination threshold */

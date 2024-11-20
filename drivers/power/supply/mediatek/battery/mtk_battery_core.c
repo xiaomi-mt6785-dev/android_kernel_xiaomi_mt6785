@@ -4890,18 +4890,17 @@ void mtk_battery_init(struct platform_device *dev)
 		fg_zcv_int_handler);
 
 		if (gauge_get_hw_version() < GAUGE_HW_V2000) {
-// workaround for mt6768
-			/*lbat_user_register(&gm.lowbat_service, "fuel gauge",
+			lbat_user_register("fuel gauge",
 			fg_cust_data.vbat2_det_voltage3 / 10,
 			fg_cust_data.vbat2_det_voltage1 / 10,
 			fg_cust_data.vbat2_det_voltage2 / 10,
 			fg_update_sw_low_battery_check);
 
-			lbat_user_set_debounce(&gm.lowbat_service,
+			lbat_user_set_debounce(gm.lowbat_service,
 			fg_cust_data.vbat2_det_time * 1000,
 			fg_cust_data.vbat2_det_counter,
 			fg_cust_data.vbat2_det_time * 1000,
-			fg_cust_data.vbat2_det_counter);*/
+			fg_cust_data.vbat2_det_counter);
 
 			/* sw bat_cycle_car init, gm25 should start from 0 */
 			gm.bat_cycle_car = gauge_get_coulomb();

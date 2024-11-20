@@ -84,6 +84,12 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 {
 	struct tcp_notify *noti = data;
 	struct mtk_pd_adapter_info *pinfo;
+	struct power_supply *usb_psy = power_supply_get_by_name("usb");
+
+	if (!usb_psy) {
+		chr_err("usb_psy failed, line:%d\n", __LINE__);
+		return 0;
+	}
 
 	pinfo = container_of(pnb, struct mtk_pd_adapter_info, pd_nb);
 
@@ -306,7 +312,7 @@ static int pd_set_cap(struct adapter_device *dev, enum adapter_cap_type type,
 
 	if (type == MTK_PD_APDO_START) {
 		tcpm_ret = tcpm_set_apdo_charging_policy(info->tcpc,
-			DPM_CHARGING_POLICY_PPS, mV, mA, NULL);
+			DPM_CHARGING_POLICY_PPS | DPM_CHARGING_POLICY_IGNORE_MISMATCH_CURR, mV, mA, NULL);
 	} else if (type == MTK_PD_APDO_END) {
 		tcpm_ret = tcpm_set_pd_charging_policy(info->tcpc,
 			DPM_CHARGING_POLICY_VSAFE5V, NULL);
@@ -377,6 +383,10 @@ static int pd_set_pd_verify_process(struct adapter_device *dev, int verify_in_pr
 {
 	int ret = 0;
 	union power_supply_propval val = {0,};
+
+	if(!usb_psy){
+		usb_psy = power_supply_get_by_name("usb");
+	}
 
 	if (usb_psy) {
 		val.intval = verify_in_process;

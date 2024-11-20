@@ -144,6 +144,7 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_THERMAL_INPUT_CURRENT,
 	POWER_SUPPLY_PROP_CHARGING_ENABLED,
 	POWER_SUPPLY_PROP_TYPEC_MODE,
+	POWER_SUPPLY_PROP_REAL_SOC,
 	//POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 };
 
@@ -902,6 +903,9 @@ static int battery_get_property(struct power_supply *psy,
 	int fgcurrent = 0;
 	bool b_ischarging = 0;
 	int input_suspend;
+	struct power_supply	*usb_psy;
+	union power_supply_propval real_type = {0};
+	union power_supply_propval pd_active = {0};
 	/* 2020.12.31 longcheer jiangshitian bat FAMMI start */
 	union power_supply_propval chg_flag_unin = {0,};
 	/* 2020.12.31 longcheer jiangshitian bat FAMMI end */
@@ -916,8 +920,27 @@ static int battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_STATUS:
 		val->intval = data->BAT_STATUS;
 		input_suspend = charger_manager_is_input_suspend();
-		if (input_suspend || chr_type == CHARGER_UNKNOWN)
+		usb_psy = power_supply_get_by_name("usb");
+		if(!usb_psy){
+			pr_err("usb_psy is NULL!\n");
+			return 0;
+		}
+		power_supply_get_property(usb_psy,
+		POWER_SUPPLY_PROP_REAL_TYPE, &real_type);
+		power_supply_get_property(usb_psy,
+		POWER_SUPPLY_PROP_PD_ACTIVE, &pd_active);
+		if(val->intval == POWER_SUPPLY_STATUS_FULL){
+			val->intval = POWER_SUPPLY_STATUS_FULL;
+		}else if(input_suspend){
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+		}else if(((val->intval == POWER_SUPPLY_STATUS_DISCHARGING) ||
+			(val->intval == POWER_SUPPLY_STATUS_NOT_CHARGING)) && (real_type.intval > 0)){
+				val->intval = POWER_SUPPLY_STATUS_CHARGING;
+		}else if(pd_active.intval){
+			val->intval = POWER_SUPPLY_STATUS_CHARGING;
+		}else if(data->BAT_batt_vol < 3300){
+			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+		}
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = data->BAT_HEALTH;/* do not change before*/
@@ -1086,6 +1109,9 @@ static int battery_get_property(struct power_supply *psy,
 		if (input_suspend || chr_type == CHARGER_UNKNOWN)
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 		break;
+	case POWER_SUPPLY_PROP_REAL_SOC:
+		val->intval = battery_get_soc();
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -1154,9 +1180,13 @@ static int battery_prop_is_writeable(struct power_supply *psy,
 			enum power_supply_property psp)
 {
 	switch (psp) {
+	case POWER_SUPPLY_PROP_SET_TEMP_ENABLE:
+	case POWER_SUPPLY_PROP_SET_TEMP_NUM:
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
-		return 1;
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+	case POWER_SUPPLY_PROP_FAST_CHARGE_CURRENT:
+	case POWER_SUPPLY_PROP_THERMAL_INPUT_CURRENT:
 		return 1;
 		break;
 	default:

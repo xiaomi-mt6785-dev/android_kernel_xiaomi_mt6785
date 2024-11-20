@@ -407,6 +407,7 @@ static struct device_attribute power_supply_attrs[] = {
 #ifdef CONFIG_MTBF_SUPPORT
 	POWER_SUPPLY_ATTR(mtbf_current),
 #endif
+	POWER_SUPPLY_ATTR(real_soc),
 #ifdef CONFIG_BQ2597X_CHARGE_PUMP
 	/* Bq charge pump properties */
 	POWER_SUPPLY_ATTR(dp_dm_bq),
@@ -430,6 +431,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(hv_charge_enable),
 	POWER_SUPPLY_ATTR(pd_authentication),
 	POWER_SUPPLY_ATTR(pd_type),
+	POWER_SUPPLY_ATTR(apdo_max),
 #endif
 #ifdef CONFIG_XMUSB350_DET_CHG
 	POWER_SUPPLY_ATTR(qc35_chg_type),

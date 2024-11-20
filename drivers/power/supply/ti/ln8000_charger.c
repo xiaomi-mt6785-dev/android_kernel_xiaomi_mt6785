@@ -309,7 +309,7 @@ static int ln8000_set_adc_ch(struct ln8000_info *info, unsigned int ch, bool ena
 
     if (ch == LN8000_ADC_CH_ALL) {
        // update all channels
-       val  = (enable) ? 0xFF : 0x00;
+       val  = (enable) ? 0x3E : 0x00;
        ret  = ln8000_write_reg(info, LN8000_REG_ADC_CFG, val);
     } else {
        // update selected channel
@@ -558,6 +558,9 @@ static int ln8000_check_status(struct ln8000_info *info)
 		info->volt_qual = !(LN8000_STATUS(val[3], 1 << 5));
 		if (info->volt_qual == 0) {
 			ln_info("volt_fault_detected (volt_qual=%d\n", info->volt_qual);
+            /* clear latched status */
+            ln8000_update_reg(info, LN8000_REG_TIMER_CTRL, 0x1 << 2, 0x1 << 2);
+            ln8000_update_reg(info, LN8000_REG_TIMER_CTRL, 0x1 << 2, 0x0 << 2);
 		}
 	}
     info->iin_oc     = LN8000_STATUS(val[3], LN8000_MASK_IIN_OC_DETECTED);
@@ -639,6 +642,10 @@ static int ln8000_change_opmode(struct ln8000_info *info, unsigned int target_mo
     int ret = 0;
     u8 val, msk = (0x1 << LN8000_BIT_STANDBY_EN | 0x1 << LN8000_BIT_EN_1TO1);
 
+    /* clear latched status */
+    ln8000_update_reg(info, LN8000_REG_TIMER_CTRL, 0x1 << 2, 0x1 << 2);
+    ln8000_update_reg(info, LN8000_REG_TIMER_CTRL, 0x1 << 2, 0x0 << 2);
+
     switch(target_mode) {
       case LN8000_OPMODE_STANDBY:
         val = (1 << LN8000_BIT_STANDBY_EN);
@@ -705,6 +712,13 @@ static int ln8000_init_device(struct ln8000_info *info)
 
     /* mark sw initialized (used CHARGE_CTRL bit:7) */
     ln8000_update_reg(info, LN8000_REG_CHARGE_CTRL, 0x1 << 7, 0x1 << 7);
+    ln8000_write_reg(info, LN8000_REG_THRESHOLD_CTRL, 0x0E);
+
+    /* restore regval for prevent EOS attack */
+    ln8000_read_reg(info, LN8000_REG_REGULATION_CTRL, &info->regulation_ctrl);
+    ln8000_read_reg(info, LN8000_REG_ADC_CTRL, &info->adc_ctrl);
+    ln8000_read_reg(info, LN8000_REG_V_FLOAT_CTRL, &info->v_float_ctrl);
+    ln8000_read_reg(info, LN8000_REG_CHARGE_CTRL, &info->charge_ctrl);
 
 	/* 2021.03.26 longcheer jiangshitian HMI_M306_A01-626 start */
     ln8000_set_sw_freq(info, 0x9);  /* adjustment switching frequency refer to trim document. */
@@ -712,6 +726,32 @@ static int ln8000_init_device(struct ln8000_info *info)
 
     ln8000_print_regmap(info);
 
+    return 0;
+}
+
+static int ln8000_check_regmap_data(struct ln8000_info *info)
+{
+    u8 regulation_ctrl;
+    u8 adc_ctrl;
+    u8 v_float_ctrl;
+    u8 charge_ctrl;
+    ln8000_read_reg(info, LN8000_REG_REGULATION_CTRL, &regulation_ctrl);
+    ln8000_read_reg(info, LN8000_REG_ADC_CTRL, &adc_ctrl);
+    ln8000_read_reg(info, LN8000_REG_V_FLOAT_CTRL, &v_float_ctrl);
+    ln8000_read_reg(info, LN8000_REG_CHARGE_CTRL, &charge_ctrl);
+    if ((info->regulation_ctrl != regulation_ctrl) ||
+        (info->adc_ctrl != adc_ctrl) ||
+        (info->charge_ctrl != charge_ctrl) ||
+        (info->v_float_ctrl != v_float_ctrl)) {
+        /* Decide register map was reset */
+        ln_err("decided register map RESET, re-initialize device\n");
+        ln_err("regulation_ctrl = 0x%x : 0x%x\n", info->regulation_ctrl, regulation_ctrl);
+        ln_err("adc_ctrl        = 0x%x : 0x%x\n", info->adc_ctrl, adc_ctrl);
+        ln_err("charge_ctrl     = 0x%x : 0x%x\n", info->charge_ctrl, charge_ctrl);
+        ln_err("vbat_float      = 0x%x : 0x%x\n", info->v_float_ctrl, v_float_ctrl);
+        ln8000_init_device(info);
+        msleep(300);
+    }
     return 0;
 }
 
@@ -789,12 +829,10 @@ static int psy_chg_get_charging_enabled(struct ln8000_info *info)
 static int psy_chg_get_ti_alarm_status(struct ln8000_info *info)
 {
     int alarm;
+    unsigned int v_offset;
     bool bus_ovp, bus_ocp, bat_ovp;
     u8 val[4];
 
-    if (ln8000_bulk_read_reg(info, LN8000_REG_SYS_STS, val, 4) < 0) {
-        return -EINVAL;
-    }
     ln8000_check_status(info);
     ln8000_get_adc_data(info, LN8000_ADC_CH_VIN, &info->vbus_uV);
     ln8000_get_adc_data(info, LN8000_ADC_CH_IIN, &info->iin_uA);
@@ -806,13 +844,43 @@ static int psy_chg_get_ti_alarm_status(struct ln8000_info *info)
 
     /* BAT alarm status not support (ovp/ocp/ucp) */
     alarm = ((bus_ovp << BUS_OVP_ALARM_SHIFT) |
-             (bus_ocp << BUS_OCP_ALARM_SHIFT) |
-             (bat_ovp << BAT_OVP_ALARM_SHIFT) |
-             (info->tbus_tbat_alarm << BAT_THERM_ALARM_SHIFT) |
-             (info->tbus_tbat_alarm << BUS_THERM_ALARM_SHIFT) |
-             (info->tdie_alarm << DIE_THERM_ALARM_SHIFT));
+            (bus_ocp << BUS_OCP_ALARM_SHIFT) |
+            (bat_ovp << BAT_OVP_ALARM_SHIFT) |
+            (info->tbus_tbat_alarm << BAT_THERM_ALARM_SHIFT) |
+            (info->tbus_tbat_alarm << BUS_THERM_ALARM_SHIFT) |
+            (info->tdie_alarm << DIE_THERM_ALARM_SHIFT));
 
-    ln_info("st[0x%x:0x%x:0x%x:0x%x], alarm=0x%x\n", val[0], val[1], val[2], val[3], alarm);
+    if (info->vbus_uV < (info->vbat_uV * 2)) {
+        v_offset = 0;
+    } else {
+        v_offset = info->vbus_uV - (info->vbat_uV * 2);
+    }
+
+    /* after charging-enabled, When the input current rises above rcp_th(over 200mA), it activates rcp. */
+    if (info->chg_en && !(info->rcp_en)) {
+        if (info->iin_uA > 400000) {
+            ln8000_enable_rcp(info, 1);
+            ln_info("enabled rcp\n");
+        }
+    }
+
+    /* If an unplug event occurs when vbus voltage lower then vin_start_up_th, switch to standby mode. */
+    if (info->chg_en && !(info->rcp_en)) {
+        if (info->iin_uA < 70000 && v_offset < 100000) {
+        ln8000_change_opmode(info, LN8000_OPMODE_STANDBY);
+        ln_info("forced change standby_mode for prevent reverse current\n");
+            ln8000_enable_rcp(info, 1);
+            info->chg_en = 0;
+        }
+    }
+
+    ln8000_bulk_read_reg(info, LN8000_REG_SYS_STS, val, 4);
+    ln_info("adc_vin=%d(th=%d), adc_iin=%d(th=%d), adc_vbat=%d(th=%d), v_offset=%d\n",
+            info->vbus_uV / 1000, info->vin_ovp_alarm_th / 1000,
+            info->iin_uA / 1000, info->iin_ocp_alarm_th / 1000,
+            info->vbat_uV / 1000, info->vbat_ovp_alarm_th / 1000,
+            v_offset / 1000);
+    ln_info("st:0x%x:0x%x:0x%x:0x%x alarm=0x%x\n", val[0], val[1], val[2], val[3], alarm);
 
     return alarm;
 }
@@ -968,11 +1036,15 @@ static int psy_chg_set_charging_enable(struct ln8000_info *info, int val)
     int op_mode;
 
     if (val) {
+        ln8000_check_regmap_data(info);
         ln_info("start charging\n");
         op_mode = LN8000_OPMODE_SWITCHING;
+        /* when the start-up to charging, we need to disabled rcp. */
+        ln8000_enable_rcp(info, 0);
     } else {
         ln_info("stop charging\n");
         op_mode = LN8000_OPMODE_STANDBY;
+        ln8000_enable_rcp(info, 1);
     }
 
     ln8000_change_opmode(info, op_mode);

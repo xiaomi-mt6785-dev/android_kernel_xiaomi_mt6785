@@ -361,7 +361,7 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		else {
 			if (info->sw_jeita.sm == TEMP_T0_TO_T1) {
 				pdata->input_current_limit = 3000000;
-				pdata->charging_current_limit = 900000;
+				pdata->charging_current_limit = 980000;
 			}
 		}
 	}
