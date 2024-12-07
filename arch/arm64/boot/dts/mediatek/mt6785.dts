@@ -5689,11 +5689,11 @@ page_owner=on loop.max_part=7";
 		/* vote */
 		enable_vote;
 		//enable_cv_step;
-		step_a = <4250000>;
-		step_b = <4450000>;
-		current_a = <5400000>;
-		current_b = <3520000>;
-		current_max = <6000000>;
+		step_a = <4240000>;
+		step_b = <4440000>;
+		current_a = <5300000>;
+		current_b = <3700000>;
+		current_max = <5850000>;
 		step_hy_down_a = <150000>;
 		step_hy_down_b = <150000>;
 
@@ -6029,7 +6029,7 @@ page_owner=on loop.max_part=7";
 &cp_qc30 {
 	compatible = "xiaomi,cp-qc30";
 	status = "okay";
-	mi,qc3-bat-volt-max = <4480>;
+	mi,qc3-bat-volt-max = <4460>;
 	mi,qc3-bat-curr-max = <3600>;
 	mi,qc3-bus-volt-max = <12000>;
 	mi,qc3-bus-curr-max = <2100>;
@@ -6045,7 +6045,7 @@ page_owner=on loop.max_part=7";
 &usbpd_pm {
 	compatible = "xiaomi,usbpd-pm";
 	status = "okay";
-	mi,pd-bat-volt-max = <4480>;
+	mi,pd-bat-volt-max = <4460>;
 	mi,pd-bat-curr-max = <6000>;
 	mi,pd-bus-volt-max = <12000>;
 	mi,pd-bus-curr-max = <3000>;
