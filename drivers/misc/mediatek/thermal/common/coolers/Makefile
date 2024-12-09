@@ -174,15 +174,15 @@ ifeq ($(CONFIG_MTK_THERMAL_PA_VIA_ATCMD),y)
 endif
 
 ifeq ($(CONFIG_MTK_PUMP_EXPRESS_PLUS_30_SUPPORT),y)
-	obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_v2.o
+	#obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_v2.o
 else
 	ifeq ($(CONFIG_MTK_GAUGE_VERSION),30)
-		obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_v2.o
+		#obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_v2.o
 		ifeq ($(CONFIG_MTK_DUAL_CHARGER_SUPPORT),y)
-			obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_2nd.o
+			#obj-$(CONFIG_THERMAL) += mtk_cooler_bcct_2nd.o
 		endif
 	else
-		obj-$(CONFIG_THERMAL) += mtk_cooler_bcct.o
+		#obj-$(CONFIG_THERMAL) += mtk_cooler_bcct.o
 	endif
 endif
 obj-$(CONFIG_THERMAL) += mtk_cooler_gpu_cus.o
