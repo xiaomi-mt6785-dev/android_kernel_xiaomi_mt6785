@@ -59,6 +59,7 @@
 #include <mt-plat/mtk_boot.h>
 
 #include <mtk_gauge_class.h>
+#include <mt6359/mtk_gauge.h>
 #include "mtk_battery_internal.h"
 #include <mach/mtk_battery_property.h>
 #include <mtk_gauge_time_service.h>
@@ -2155,7 +2156,7 @@ unsigned int TempToBattVolt(int temp, int update)
 		fg_meter_res_value = 0;
 
 #ifdef RBAT_PULL_UP_VOLT_BY_BIF
-	vbif28 = pmic_get_vbif28_volt();
+	vbif28 = mt6359_gauge_get_bif_voltage();
 #endif
 	Vin = (long long)R_NTC * vbif28 * 10;	/* 0.1 mV */
 
@@ -2197,7 +2198,7 @@ int BattVoltToTemp(int dwVolt, int volt_cali)
 
 	TRes_temp = (gm.rbat.rbat_pull_up_r * (long long) dwVolt);
 #ifdef RBAT_PULL_UP_VOLT_BY_BIF
-	vbif28 = pmic_get_vbif28_volt() + volt_cali;
+	vbif28 = mt6359_gauge_get_bif_voltage() + volt_cali;
 	delta_v = abs(vbif28 - dwVolt);
 	if (delta_v == 0)
 		delta_v = 1;
@@ -2211,7 +2212,7 @@ int BattVoltToTemp(int dwVolt, int volt_cali)
 	if (vbif28 > 3000 || vbif28 < 2500)
 		bm_err(
 			"[RBAT_PULL_UP_VOLT_BY_BIF] vbif28:%d\n",
-			pmic_get_vbif28_volt());
+			mt6359_gauge_get_bif_voltage());
 #else
 	delta_v = abs(gm.rbat.rbat_pull_up_volt - dwVolt);
 	if (delta_v == 0)

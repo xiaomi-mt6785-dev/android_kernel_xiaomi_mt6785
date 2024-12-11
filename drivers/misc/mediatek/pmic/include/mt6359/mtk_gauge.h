@@ -6,4 +6,4 @@
 
 int mt6359_gauge_get_batadc(void);
 int mt6359_gauge_get_v_bat_temp(void);
-
+int mt6359_gauge_get_bif_voltage(void);

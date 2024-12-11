@@ -3095,6 +3095,28 @@ int mt6359_gauge_get_v_bat_temp(void)
 	return val;
 }
 
+int mt6359_gauge_get_bif_voltage(void)
+{
+	int ret;
+	int val = -1;
+
+	if (g_pdev == NULL) {
+		bm_err("mt6359 gauge not probed %s ", __func__);
+		return val;
+	}
+	if (init_devm == 0) {
+		if (init_devm_channel() == 0)
+			return val;
+	}
+	if (!IS_ERR(chan_bif)) {
+		ret = iio_read_channel_processed(chan_bif, &val);
+		if (ret < 0)
+			bm_err("[%s]read fail,ret=%d\n", __func__, ret);
+	}
+
+	return val;
+}
+
 int init_devm_channel(void)
 {
 	int ret = -1;
@@ -3127,6 +3149,20 @@ int init_devm_channel(void)
 	} else {
 		init_devm = 1;
 	}
+
+	chan_bif = devm_iio_channel_get(&g_pdev->dev, "pmic_bif_voltage");
+	if (IS_ERR(chan_bif)) {
+		ret = PTR_ERR(chan_bif);
+		if (ret) {
+			if (ret != -EPROBE_DEFER)
+				bm_err("chan_bif auxadc get fail, ret=%d\n", ret);
+			return ret;
+		}
+		init_devm = 0;
+	} else {
+		init_devm = 1;
+	}
+
 	return init_devm;
 }
 
@@ -3443,6 +3479,17 @@ static int mt6359_gauge_probe(struct platform_device *pdev)
 		}
 		init_devm = 0;
 	}
+
+	chan_bif = devm_iio_channel_get(&pdev->dev, "pmic_bif_voltage");
+	if (PTR_ERR_OR_ZERO(chan_bif)) {
+		ret = PTR_ERR_OR_ZERO(chan_bif);
+		if (ret) {
+			if (ret != -EPROBE_DEFER)
+				bm_err("chan_bif auxadc get fail, ret=%d\n", ret);
+		}
+		init_devm = 0;
+	}
+
 	return 0;
 err_register_gauge_dev:
 	devm_kfree(&pdev->dev, info);
