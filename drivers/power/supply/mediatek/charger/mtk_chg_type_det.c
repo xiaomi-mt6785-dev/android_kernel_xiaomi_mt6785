@@ -1058,13 +1058,32 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 	struct chg_type_info *cti = container_of(pnb,
 		struct chg_type_info, pd_nb);
 	int vbus = 0;
-
+	struct power_supply *ac_psy = power_supply_get_by_name("ac");
+	struct power_supply *usb_psy = power_supply_get_by_name("usb");
+	struct mt_charger *mtk_chg_ac;
+	struct mt_charger *mtk_chg_usb;
 	union power_supply_propval pval = {0,};
-	struct power_supply	*usb_psy = NULL;
-	struct power_supply	*charger_identify_psy = NULL;
 
-	usb_psy = power_supply_get_by_name("usb");
-	charger_identify_psy = power_supply_get_by_name("Charger_Identify");	
+	if (IS_ERR_OR_NULL(usb_psy)) {
+		chr_err("%s, fail to get usb_psy\n", __func__);
+		return NOTIFY_BAD;
+	}
+	if (IS_ERR_OR_NULL(ac_psy)) {
+		chr_err("%s, fail to get ac_psy\n", __func__);
+		return NOTIFY_BAD;
+	}
+
+	mtk_chg_ac = power_supply_get_drvdata(ac_psy);
+	if (IS_ERR_OR_NULL(mtk_chg_ac)) {
+		chr_err("%s, fail to get mtk_chg_ac\n", __func__);
+		return NOTIFY_BAD;
+	}
+
+	mtk_chg_usb = power_supply_get_drvdata(usb_psy);
+	if (IS_ERR_OR_NULL(mtk_chg_usb)) {
+		chr_err("%s, fail to get mtk_chg_usb\n", __func__);
+		return NOTIFY_BAD;
+	}
 
 	switch (event) {
 	case TCP_NOTIFY_SINK_VBUS:
@@ -1090,18 +1109,13 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 			&& noti->typec_state.new_state == TYPEC_UNATTACHED) {
 			if (cti->tcpc_kpoc) {
 				vbus = battery_get_vbus();
-				// fix vbus to 0v, when cdp plug in.
-				if (charger_identify_psy) {
-					if (!vbus) {
-						mdelay(3000);
-						vbus = battery_get_vbus();
-						pr_info("%s vbus = %d\n", __func__, vbus);
-						if (vbus)
-							return NOTIFY_OK;
-					}
-				}
 				pr_info("%s KPOC Plug out, vbus = %d\n",
 					__func__, vbus);
+				mtk_chg_ac->chg_type = CHARGER_UNKNOWN;
+				mtk_chg_usb->chg_type = CHARGER_UNKNOWN;
+				power_supply_changed(ac_psy);
+				power_supply_changed(usb_psy);
+				mdelay(3000);
 				queue_work_on(cpumask_first(cpu_online_mask),
 					      cti->pwr_off_wq,
 					      &cti->pwr_off_work);
