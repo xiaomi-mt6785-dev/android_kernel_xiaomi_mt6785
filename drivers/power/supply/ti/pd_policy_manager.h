@@ -115,17 +115,6 @@ enum pm_state {
 //2020.12.18 longcheer jiangshitian edit for sc/bq pps current limited
 #define NORMAL_WORK_MAX_INPUT_CURRENT_THRESHOLD_UA 2980000   //2020.12.29 longcheer jiangshitian edit for fcc max charge current
 
-/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-typedef enum _SWITCH_CHG_IC{
-	CHG_TYPE_NONE,
-	CHG_TYPE_NORMAL,
-	CHG_TYPE_PD,
-	CHG_TYPE_MAX
-}SWITCH_CHG_IC;
-#endif
-/* 2021.01.21 longcheer jiangshitian change for mic noise end */
-
 struct sw_device {
 	bool charge_enabled;
 };
@@ -271,15 +260,5 @@ extern int usbpd_fetch_pdo(struct usbpd *pd, struct usbpd_pdo *pdos);
 extern int usbpd_select_pdo(struct usbpd *pd, int pdo, int uv, int ua);
 extern struct usbpd *smb_get_usbpd(void);
 extern int charger_manager_set_current_limit(int data, int type);
-/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-static int usbpd_pm_enable_cp(struct usbpd_pm *pdpm, bool enable);
-static int usbpd_pm_check_cp_enabled(struct usbpd_pm *pdpm);
-extern unsigned int get_boot_mode(void);
-#if defined(CONFIG_TARGET_PROJECT_K7B)
-extern int get_board_new_version(void);
-#endif
-#endif
-/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 
 #endif /* SRC_PDLIB_USB_PD_POLICY_MANAGER_H_ */

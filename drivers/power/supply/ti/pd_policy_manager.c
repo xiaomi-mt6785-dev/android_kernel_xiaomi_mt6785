@@ -30,15 +30,6 @@
 #include <mt-plat/v1/mtk_charger.h>
 #include "../../../misc/mediatek/typec/tcpc/inc/tcpm.h"
 
-struct tag_bootmode {
-	u32 size;
-	u32 tag;
-	u32 bootmode;
-	u32 boottype;
-};
-#define KERNEL_POWER_OFF_CHARGING_BOOT_MODE 8
-#define LOW_POWER_OFF_CHARGING_BOOT_MODE 9
-
 #define PD_SRC_PDO_TYPE_FIXED		0
 #define PD_SRC_PDO_TYPE_BATTERY		1
 #define PD_SRC_PDO_TYPE_VARIABLE	2
@@ -56,12 +47,14 @@ struct tag_bootmode {
 #define BAT_CURR_LOOP_LMT		BATT_FAST_CHG_CURR
 #define BUS_VOLT_LOOP_LMT		BUS_OVP_THRESHOLD
 
-#define PM_WORK_RUN_NORMAL_INTERVAL		500
-#if defined(CONFIG_KERNEL_CUSTOM_FACTORY)
+#if defined(CONFIG_KERNEL_CUSTOM_FACTORY) // factory FAMMI test
 #define PM_WORK_RUN_QUICK_INTERVAL		100
+#define PM_WORK_RUN_NORMAL_INTERVAL		300
 #else
 #define PM_WORK_RUN_QUICK_INTERVAL		200
+#define PM_WORK_RUN_NORMAL_INTERVAL		300
 #endif
+
 enum {
 	PM_ALGO_RET_OK,
 	PM_ALGO_RET_THERM_FAULT,
@@ -134,137 +127,6 @@ EXPORT_SYMBOL(set_bq2597x_load_flag);
 EXPORT_SYMBOL(get_bq2597x_load_flag);
 EXPORT_SYMBOL(set_ln8000_load_flag);
 EXPORT_SYMBOL(get_ln8000_load_flag);
-/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-bool mic_exist = false; // true: mic plugin  false: mic plugout; default false
-bool chg_exist = false; // true: charge plugin  false: charge plugout; default false
-bool mic_chg_exist = false;//ture:mic and chg both plug in  false:not both plug in; default false
-bool need_switch_IC = false;//true:need switch IC;false:do not need switch IC
-SWITCH_CHG_IC enum_switch_CHG_IC = CHG_TYPE_NONE;
-
-static void set_mic_exist_flag(bool micflag)
-{
-	mic_exist = micflag;
-}
-
-static void set_switch_IC_flag(bool needswitch)
-{
-	need_switch_IC = needswitch;
-}
-
-static bool get_switch_IC_flag(void)
-{
-	return need_switch_IC;
-}
-
-void set_chg_exist_flag(bool chgflag)
-{
-	chg_exist = chgflag;
-}
-
-bool get_chg_exist_flag(void)
-{
-	return chg_exist;
-}
-
-static bool get_mic_chg_exist_flag(void)
-{
-	if((true == mic_exist)&&(true == chg_exist))
-	{
-		mic_chg_exist = true;
-	}
-	else
-	{
-		mic_chg_exist = false;
-	}
-
-	return mic_chg_exist;
-}
-
-
-EXPORT_SYMBOL(set_chg_exist_flag);
-EXPORT_SYMBOL(get_chg_exist_flag);
-
-static bool kpoc_charge_check(void)
-{
-	int boot_mode = 11;
-	struct device_node *np_chosen = NULL;
-	struct tag_bootmode *tag = NULL;
-
-	np_chosen = of_find_node_by_path("/chosen");
-	if (!np_chosen) {
-		pr_err("%s: warning: not find node: '/chosen'\n", __func__);
-
-		np_chosen = of_find_node_by_path("/chosen@0");
-		if (!np_chosen) {
-			pr_err("%s: warning: not find node: '/chosen@0'\n", __func__);
-			return false;
-		}
-	}
-
-	tag = (struct tag_bootmode *)
-			of_get_property(np_chosen, "atag,boot", NULL);
-	if (!tag) {
-		pr_err("%s: error: not find tag: 'atag,boot';\n", __func__);
-		return false;
-	}
-
-    boot_mode = tag->bootmode;
-	pr_debug("%s: bootmode: 0x%x.\n",
-		__func__, boot_mode);
-
-	if (boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT_MODE
-	    || boot_mode == LOW_POWER_OFF_CHARGING_BOOT_MODE) {
-		return true;
-	}
-
-	return false;
-}
-
-static bool enable_switch_charge_PD(void)
-{
-	bool enable = true;
-	#if defined(CONFIG_TARGET_PROJECT_K7B)
-	if(0 == get_board_new_version())
-	#endif
-	{
-		pr_info("%s  %d  get_mic_chg_exist_flag=%d enum_switch_CHG_IC=%d......\n", __func__, __LINE__,get_mic_chg_exist_flag(),enum_switch_CHG_IC);
-		if(kpoc_charge_check())
-		{
-			enable = true;
-		}
-		else
-		{
-			if(true == get_mic_chg_exist_flag())
-			{
-				enable = false;
-				enum_switch_CHG_IC = CHG_TYPE_NORMAL;
-			}
-			else
-			{
-				enable = true;
-				enum_switch_CHG_IC = CHG_TYPE_PD;
-			}
-		}
-	}
-	return enable;
-}
-
-void switch_charge_IC_GPL(bool micflag) //micflag=1: mic plugin  micflag=0: mic plugout
-{
-	pr_info("%s  %d  get_board_new_version = %d......\n", __func__, __LINE__, get_board_new_version());
-#if defined(CONFIG_TARGET_PROJECT_K7B)
-	if(0 == get_board_new_version())
-#endif
-	{
-		set_mic_exist_flag(micflag);
-		set_switch_IC_flag(true);
-	}
-}
-EXPORT_SYMBOL(switch_charge_IC_GPL);
-
-#endif
-/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 
 static void usbpd_check_usb_psy(struct usbpd_pm *pdpm)
 {
@@ -1516,20 +1378,7 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 				}
 				if (ret >= 0 && is_ch1_pwr_path_en) {
 					pr_info("PD_PM_STATE_FC2_ENTRY_2: vbus too low while main charger working, disable it\n");
-				/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-				#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-					if(!enable_switch_charge_PD())
-					{
-						usbpd_pm_enable_cp(pdpm, false);
-					}
-					else
-					{
-						usbpd_pm_enable_cp(pdpm, true);
-					}
-				#else
 					usbpd_pm_enable_cp(pdpm, true);
-				#endif
-				/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 					usbpd_pm_check_cp_enabled(pdpm);
 				}
 			}
@@ -1558,26 +1407,13 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 	case PD_PM_STATE_FC2_ENTRY_3:
 		if (pm_config.cp_sec_enable && !pdpm->cp_sec.charge_enabled) {
 			usbpd_pm_enable_cp_sec(pdpm, true);
-			msleep(30);
+			msleep(100);
 			usbpd_pm_check_cp_sec_enabled(pdpm);
 		}
 
 		if (!pdpm->cp.charge_enabled) {
-		/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-		#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-			if(!enable_switch_charge_PD())
-			{
-				usbpd_pm_enable_cp(pdpm, false);
-			}
-			else
-			{
-				usbpd_pm_enable_cp(pdpm, true);
-			}
-		#else
 			usbpd_pm_enable_cp(pdpm, true);
-		#endif
-		/* 2021.01.21 longcheer jiangshitian change for mic noise end */
-			msleep(30);
+			msleep(100);
 			usbpd_pm_check_cp_enabled(pdpm);
 		}
 
@@ -1585,20 +1421,8 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 			if ((pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled)
 					|| !pm_config.cp_sec_enable) {
 				pd_set_bq_charge_done(pdpm, false);
-			/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-			#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-				if(!enable_switch_charge_PD())
-				{
-					usbpd_pm_enable_cp(pdpm, false);
-				}
-				else
-				{
-					usbpd_pm_enable_cp(pdpm, true);
-				}
-			#else
 				usbpd_pm_enable_cp(pdpm, true);
-			#endif
-			/* 2021.01.21 longcheer jiangshitian change for mic noise end */
+				msleep(100);
 				usbpd_pm_check_cp_enabled(pdpm);
 				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_TUNE);
 				ibus_lmt_change_timer = 0;
@@ -1608,16 +1432,6 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 		break;
 
 	case PD_PM_STATE_FC2_TUNE:
-		/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-		#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-			if(get_switch_IC_flag())
-			{
-				usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
-				set_switch_IC_flag(false);
-				break;
-			}
-		#endif
-		/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 		usbpd_update_pps_status(pdpm);
 
 		ret = usbpd_pm_fc2_charge_algo(pdpm);
@@ -1723,41 +1537,14 @@ static void usbpd_pm_workfunc(struct work_struct *work)
 		}
 		pdpm->pd_verified_checked = true;
 	}
-#if defined(CONFIG_KERNEL_CUSTOM_FACTORY)
 	if (!usbpd_pm_sm(pdpm) && pdpm->pd_active) {
 		if (pdpm->cp.vbat_volt >= HIGH_VOL_THR_MV)
 			internal = PM_WORK_RUN_QUICK_INTERVAL;
 		else
-			internal = PM_WORK_RUN_QUICK_INTERVAL;
+			internal = PM_WORK_RUN_NORMAL_INTERVAL;
 		schedule_delayed_work(&pdpm->pm_work,
 				msecs_to_jiffies(internal));
 	}
-#else
-	if (!usbpd_pm_sm(pdpm) && pdpm->pd_active) {
-		if (pdpm->cp.vbat_volt >= HIGH_VOL_THR_MV)
-			internal = PM_WORK_RUN_QUICK_INTERVAL;
-		else
-		{
-			/* 2021.02.20 longcheer jiangshitian change for mic noise begin */
-			#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-				if(!enable_switch_charge_PD())
-				{
-					internal = (PM_WORK_RUN_NORMAL_INTERVAL - 200);
-				}
-				else
-				{
-					internal = PM_WORK_RUN_NORMAL_INTERVAL;
-				}
-			#else
-				internal = PM_WORK_RUN_NORMAL_INTERVAL;
-			#endif
-			/* 2021.02.20 longcheer jiangshitian change for mic noise end */
-		}
-		schedule_delayed_work(&pdpm->pm_work,
-				msecs_to_jiffies(internal));
-	}
-#endif
-
 }
 
 static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
@@ -1765,12 +1552,6 @@ static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
 	int ret;
 	union power_supply_propval val = {0,};
 	union power_supply_propval pval = {0, };
-
-	/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-	#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-	enum_switch_CHG_IC = CHG_TYPE_NONE;
-	#endif
-	/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 
 	cancel_delayed_work_sync(&pdpm->pm_work);
 	usbpd_check_usb_psy(pdpm);
