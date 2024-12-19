@@ -118,13 +118,6 @@ static struct ntc_desc ntc_table[] = {
 	{1250, 531}
 };
 
-/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-extern void set_chg_exist_flag(bool chgflag);
-#endif
-/* 2021.01.21 longcheer jiangshitian change for mic noise end */
-
-
 static int get_connector_temp(struct mt_charger *mtk_chg)
 {
 	int volt = 0, connector_temp = DEFAULT_TEMP, res = 0, lower = 0, upper = 0, rc = 0, i = 0, vts = 0;
@@ -1021,11 +1014,6 @@ static void plug_in_out_handler(struct chg_type_info *cti, bool en, bool ignore)
 	cti->chgdet_en = en;
 	cti->ignore_usb = ignore;
 	cti->plugin = en;
-	/* 2021.01.21 longcheer jiangshitian change for mic noise begin */
-	#if defined(CONFIG_HS_MIC_RECORD_NOISE_PD_CHG)
-	set_chg_exist_flag(en);
-	#endif
-	/* 2021.01.21 longcheer jiangshitian change for mic noise end */
 	atomic_inc(&cti->chgdet_cnt);
 	wake_up_interruptible(&cti->waitq);
 skip:
