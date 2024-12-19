@@ -1046,6 +1046,7 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 	struct chg_type_info *cti = container_of(pnb,
 		struct chg_type_info, pd_nb);
 	int vbus = 0;
+	union power_supply_propval pd_active = {0,};
 	struct power_supply *ac_psy = power_supply_get_by_name("ac");
 	struct power_supply *usb_psy = power_supply_get_by_name("usb");
 	struct mt_charger *mtk_chg_ac;
@@ -1134,6 +1135,15 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 	case TCP_NOTIFY_EXT_DISCHARGE:
 		if (noti->en_state.en == false && cti->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER)
 			plug_in_out_handler(cti, false, false);
+		break;
+	case PD_CONNECT_HARD_RESET:
+		usb_psy = power_supply_get_by_name("usb");
+			if (usb_psy) {
+				pd_active.intval = POWER_SUPPLY_PD_INACTIVE;
+				power_supply_set_property(usb_psy,
+					POWER_SUPPLY_PROP_PD_ACTIVE, &pd_active);
+			}
+			chr_err("PD HARD_RESET:%d %s\n", __LINE__, __func__);
 		break;
 	}
 	return NOTIFY_OK;
