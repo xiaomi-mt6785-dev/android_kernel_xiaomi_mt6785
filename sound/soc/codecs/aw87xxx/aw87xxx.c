@@ -55,7 +55,7 @@
 * aw87xxx marco
 ******************************************************************/
 #define AW87XXX_I2C_NAME	"aw87xxx_pa"
-#define AW87XXX_DRIVER_VERSION	"V0.1.13"
+#define AW87XXX_DRIVER_VERSION	"V0.1.15"
 #define AW87XXX_PRODUCT_NUM		4
 #define AW87XXX_PRODUCT_NAME_LEN	8
 
@@ -152,14 +152,6 @@ static void aw87xxx_hw_off(struct aw87xxx *aw87xxx)
 {
 	aw_dev_info(aw87xxx->dev, "%s enter\n", __func__);
 
-	if (aw87xxx->product == AW87XXX_339 ||
-	    aw87xxx->product == AW87XXX_359 ||
-	    aw87xxx->product == AW87XXX_369) {
-		aw_dev_info(aw87xxx->dev, "%s: aw873x9 hw always enabled!!!\n",
-			    __func__);
-		aw87xxx->hwen_flag = 1;
-		return;
-	}
 	if (gpio_is_valid(aw87xxx->reset_gpio)) {
 		gpio_set_value_cansleep(aw87xxx->reset_gpio, 0);
 		mdelay(2);
@@ -296,6 +288,13 @@ int aw87xxx_audio_scene_load(uint8_t mode, int32_t channel)
 			aw_dev_info(aw87xxx->dev,
 				    "%s enter, mode = %d, channel = %d\n",
 				    __func__, mode, channel);
+
+			if (aw87xxx->aw87xxx_scene_ls.aw_off.cfg_update_flag != AW87XXX_CFG_OK) {
+				aw_dev_err(aw87xxx->dev, "%s:off mode not exist, pa not work\n",
+											__func__);
+				return -EPERM;
+			}
+
 			switch (mode) {
 			case AW87XXX_OFF_MODE:
 				aw87xxx->current_mode = mode;
@@ -757,7 +756,7 @@ static void aw87xxx_cfg_work_routine(struct work_struct *work)
 static int aw87xxx_cfg_init(struct aw87xxx *aw87xxx)
 {
 #ifdef AWINIC_CFG_UPDATE_DELAY
-	int cfg_timer_val = 5000;
+	int cfg_timer_val = AWINIC_CFG_UPDATE_DELAY_TIME;
 #else
 	int cfg_timer_val = 0;
 #endif
@@ -1326,6 +1325,15 @@ static struct aw87xxx *aw87xxx_malloc_init(struct i2c_client *client)
 	return aw87xxx;
 }
 
+static void aw87xxx_softreset(struct aw87xxx *aw87xxx)
+{
+	aw_dev_info(aw87xxx->dev, "%s: enter", __func__);
+
+	aw87xxx_i2c_write(aw87xxx, SOFTRESET_ADDR, SOFTRESET_VALUE);
+	aw_dev_info(aw87xxx->dev, "%s: softreset, 0x%x = 0x%x", __func__,
+					SOFTRESET_ADDR, SOFTRESET_VALUE);
+}
+
 /****************************************************************************
 * aw87xxx i2c driver
 *****************************************************************************/
@@ -1382,13 +1390,6 @@ static int aw87xxx_i2c_probe(struct i2c_client *client,
 			   ret);
 		goto exit_i2c_check_id_failed;
 	}
-	if (aw87xxx->product == AW87XXX_339 ||
-	    aw87xxx->product == AW87XXX_359 ||
-	    aw87xxx->product == AW87XXX_369) {
-		aw_dev_info(aw87xxx->dev, "%s: aw873x9 always hw on!!!\n",
-			    __func__);
-		aw87xxx->hwen_flag = 1;
-	}
 
 	/* aw87xxx device name */
 	if (client->dev.of_node) {
@@ -1417,6 +1418,8 @@ static int aw87xxx_i2c_probe(struct i2c_client *client,
 	spin_lock_init(&aw87xxx->bin_parse_lock);
 
 	aw87xxx_cfg_init(aw87xxx);
+
+	aw87xxx_softreset(aw87xxx);
 
 	aw87xxx_hw_off(aw87xxx);
 
@@ -1450,6 +1453,14 @@ static int aw87xxx_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void aw87xxx_i2c_shutdown(struct i2c_client *client)
+{
+	struct aw87xxx *aw87xxx = i2c_get_clientdata(client);
+
+	pr_info("%s enter!\n", __func__);
+	aw87xxx_audio_off(aw87xxx);
+}
+
 static const struct i2c_device_id aw87xxx_i2c_id[] = {
 	{AW87XXX_I2C_NAME, 0},
 	{}
@@ -1468,6 +1479,7 @@ static struct i2c_driver aw87xxx_i2c_driver = {
 		   },
 	.probe = aw87xxx_i2c_probe,
 	.remove = aw87xxx_i2c_remove,
+	.shutdown = aw87xxx_i2c_shutdown,
 	.id_table = aw87xxx_i2c_id,
 };
 
