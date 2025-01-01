@@ -4,6 +4,8 @@
 #include "aw87xxx_monitor.h"
 
 #define AWINIC_CFG_UPDATE_DELAY
+#define AWINIC_CFG_UPDATE_DELAY_TIME	(5000)
+
 #define AW_I2C_RETRIES			(5)
 #define AW_I2C_RETRY_DELAY		(2)
 
@@ -34,6 +36,9 @@
 
 #define KTHREAD_SYNC_INTERVAL		(100)
 #define WAIT_DSP_OPEN_TIME		(3000)
+
+#define SOFTRESET_ADDR			(0x00)
+#define SOFTRESET_VALUE			(0xaa)
 
 enum aw87xxx_scene_mode {
 	AW87XXX_OFF_MODE = 0,
