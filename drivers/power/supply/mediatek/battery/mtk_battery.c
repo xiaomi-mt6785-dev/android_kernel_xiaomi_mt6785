@@ -110,7 +110,6 @@ static int battery_out_data[1] = { 0 };
 static int fcc = 6000000;
 static int thermal_input_current = 3000000;
 static bool g_ADC_Cali;
-static struct wakeup_source *status_wakelock;
 
 struct power_supply *max_verify_psy;
 
@@ -4657,14 +4656,11 @@ static int battery_callback(
 			battery_main.CHG_FULL_STATUS = true;
 			notify_fg_chr_full();
 			battery_update(&battery_main);
-			__pm_relax(status_wakelock);
 		}
 		break;
 	case CHARGER_NOTIFY_START_CHARGING:
 		{
 			/* START CHARGING */
-			if (!status_wakelock->active)
-				__pm_stay_awake(status_wakelock);
 			fg_sw_bat_cycle_accu();
 			battery_main.CHG_FULL_STATUS = false;
 			battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_CHARGING;
@@ -4679,7 +4675,6 @@ static int battery_callback(
 			battery_main.BAT_STATUS =
 			POWER_SUPPLY_STATUS_DISCHARGING;
 			battery_update(&battery_main);
-			__pm_relax(status_wakelock);
 		}
 		break;
 	case CHARGER_NOTIFY_ERROR:
@@ -5094,8 +5089,6 @@ static int __init battery_probe(struct platform_device *dev)
 
 	battery_lock = wakeup_source_register(NULL, "battery wakelock");
 	__pm_stay_awake(battery_lock);
-
-	status_wakelock = wakeup_source_register(NULL, "status wakelock");
 
 /********* adc_cdev **********/
 	ret = alloc_chrdev_region(&adc_cali_devno, 0, 1, ADC_CALI_DEVNAME);
