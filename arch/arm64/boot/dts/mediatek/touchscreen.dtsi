@@ -89,12 +89,6 @@
 		touch,name = "xiaomi-touch";
 };
 
-&xiaomi_touch {
-		status = "ok";
-		compatible = "xiaomi-touch";
-		touch,name = "xiaomi-touch";
-};
-
 &touch {
 	tpd-resolution = <1080 2160>;
 	lcm-resolution = <1080 2160>;
