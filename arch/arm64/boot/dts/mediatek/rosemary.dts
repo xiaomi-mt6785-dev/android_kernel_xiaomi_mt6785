@@ -48,6 +48,31 @@
 	};
 };
 
+/* charger start */
+
+&lk_charger {
+	enable_pe_plus;
+};
+
+&charger {
+	enable_pe_plus;
+	enable_pe_2;
+	enable_pe_4;
+	pd_vbus_upper_bound = <12000000>;
+};
+
+
+&mt6360_pmu {
+	mt6360,intr_gpio_num = <16>; /* direct defined GPIO num */
+	mt6360,intr_gpio = <&pio 16 0x0>;
+};
+
+&mt6360_pmic {
+	pwr_off_seq = [04 00 00 02];
+};
+
+/* charger end */
+
 /* ir start */
 &spi3 {
 	status = "okay";
@@ -89,6 +114,24 @@
 	status = "okay";
 };
 /* accdet end */
+
+/* keypad start */
+&keypad {
+	pinctrl-names = "default";
+	pinctrl-0 = <&kpd_pins_default>;
+};
+
+&pio {
+	kpd_pins_default: kpdgpiodefault {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO80__FUNC_BPI_BUS8>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_10>;
+			input-enable;
+			input-schmitt-enable;
+		};
+	};
+};
+/* keypad end */
 
 &odm {
 	led0:led@0 {
@@ -260,10 +303,6 @@
 };
 
 /* DISPSYS GPIO standardization end */
-&mt6360_pmu {
-	mt6360,intr_gpio_num = <16>; /* direct defined GPIO num */
-	mt6360,intr_gpio = <&pio 16 0x0>;
-};
 
 &thermal_message {
 	board-sensor = "VIRTUAL-SENSOR";
