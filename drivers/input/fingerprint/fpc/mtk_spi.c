@@ -297,7 +297,9 @@ static void freq_release(struct work_struct *work)
 	}
 	if (atomic_read(&boosted) == 1) {
 		pr_info("%s  release freq lock\n", __func__);
+#ifdef CONFIG_MTK_CPU_CTRL
 		update_userlimit_cpu_freq(CPU_KIR_FP, cluster_num, freq_to_set);
+#endif
 		atomic_dec(&boosted);
 	}
 }
@@ -319,7 +321,9 @@ static int freq_hold(int sec)
 	}
 	if (atomic_read(&boosted) == 0) {
 		pr_info( "%s for %d * 500 msec \n", __func__, sec);
+#ifdef CONFIG_MTK_CPU_CTRL
 		update_userlimit_cpu_freq(CPU_KIR_FP, cluster_num, freq_to_set);
+#endif
 		atomic_inc(&boosted);
 		release_timer.expires = jiffies + (HZ / 2) * sec;
 		add_timer(&release_timer);
